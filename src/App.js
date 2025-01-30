@@ -480,7 +480,7 @@ const TodoApp = () => {
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-2xl font-bold">
-          Yapılacaklar Listesi:::
+          Yapılacaklar Listesi::: zekai ekledi
         </CardTitle>
         <div className="flex items-center gap-4">
           <Button
