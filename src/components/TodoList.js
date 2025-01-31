@@ -12,6 +12,7 @@ const TodoList = ({
   handleDeleteClick,
   handleArchiveClick,
   activeTab,
+  user,
 }) => {
   return (
     <div className="space-y-3">

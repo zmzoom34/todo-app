@@ -2,6 +2,7 @@ import React from "react";
 import { CheckSquare, Square, Edit, Archive, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { ThumbsUp, ThumbsDown, Pen, Settings } from "lucide-react";
 
 const TodoItem = ({
   todo,
@@ -41,12 +42,34 @@ const TodoItem = ({
         </div>
       ) : (
         <div className="flex-grow">
-          <p className={`${todo.completed ? "line-through text-gray-500" : ""}`}>
-            {todo.text}
-          </p>
-          <span className="text-xs text-gray-500">
-            {new Date(todo.createdAt).toLocaleString()}
-          </span>
+          <div className="flex items-center gap-2">
+            <p
+              className={`${
+                todo.completed ? "line-through text-gray-500" : ""
+              }`}
+            >
+              {todo.text}
+            </p>
+          </div>
+          {todo.completedBy && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <ThumbsUp className="w-3 h-3 text-gray-600" />
+              <span>{todo.completedBy}</span>
+              <span>{new Date(todo.updatedAt).toLocaleString()}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <Pen className="w-3 h-3 text-gray-600" />
+            <span>{todo.createdBy}</span>
+            <span>{new Date(todo.createdAt).toLocaleString()}</span>
+          </div>
+          {todo.updatedBy && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Settings className="w-3 h-3 text-gray-600" />
+              <span>{todo.updatedBy}</span>
+              <span>{new Date(todo.updatedAt).toLocaleString()}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -61,15 +84,15 @@ const TodoItem = ({
         </Button>
 
         <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleDeleteClick(todo)}
-            className="text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          variant="ghost"
+          size="icon"
+          onClick={() => handleDeleteClick(todo)}
+          className="text-red-600 hover:text-red-700"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
 
-        {activeTab !== "archive" ? (
+        {activeTab !== "archive" && (
           <Button
             variant="ghost"
             size="icon"
@@ -78,7 +101,6 @@ const TodoItem = ({
           >
             <Archive className="w-4 h-4" />
           </Button>
-        ) : (null
         )}
       </div>
     </div>
