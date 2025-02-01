@@ -19,15 +19,20 @@ const TodoItem = ({
 }) => {
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg border ${
-        todo.completed ? "bg-gray-50" : "bg-white"
+      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+        todo.completed 
+          ? "bg-green-50 border-green-100" 
+          : "bg-white border-gray-200 hover:border-gray-300"
       }`}
     >
-      <button onClick={() => toggleComplete(todo, nickName)} className="flex-shrink-0">
+      <button 
+        onClick={() => toggleComplete(todo, nickName)} 
+        className="flex-shrink-0 hover:bg-gray-100 p-1 rounded-full transition-colors"
+      >
         {todo.completed ? (
           <CheckSquare className="w-6 h-6 text-green-600" />
         ) : (
-          <Square className="w-6 h-6 text-gray-400" />
+          <Square className="w-6 h-6 text-gray-400 hover:text-gray-600" />
         )}
       </button>
 
@@ -37,38 +42,51 @@ const TodoItem = ({
             type="text"
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="flex-grow"
+            className="flex-grow focus-visible:ring-2 focus-visible:ring-blue-500"
           />
-          <Button onClick={() => saveEdit(todo)}>Kaydet</Button>
+          <Button 
+            onClick={() => saveEdit(todo)}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Kaydet
+          </Button>
         </div>
       ) : (
         <div className="flex-grow">
           <div className="flex items-center gap-2">
             <p
               className={`${
-                todo.completed ? "line-through text-gray-500" : ""
+                todo.completed 
+                  ? "line-through text-gray-600" 
+                  : "text-gray-800"
               }`}
             >
               {todo.text}
             </p>
           </div>
           {todo.completedBy && (
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <ThumbsUp className="w-3 h-3 text-gray-600" />
+            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+              <ThumbsUp className="w-3 h-3 text-gray-400" />
               <span>{todo.completedBy}</span>
-              <span>{new Date(todo.updatedAt).toLocaleString()}</span>
+              <span className="text-gray-400">
+                {new Date(todo.updatedAt).toLocaleString()}
+              </span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Pen className="w-3 h-3 text-gray-600" />
+          <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+            <Pen className="w-3 h-3 text-gray-400" />
             <span>{todo.createdBy}</span>
-            <span>{new Date(todo.createdAt).toLocaleString()}</span>
+            <span className="text-gray-400">
+              {new Date(todo.createdAt).toLocaleString()}
+            </span>
           </div>
           {todo.updatedBy && (
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <Settings className="w-3 h-3 text-gray-600" />
+            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+              <Settings className="w-3 h-3 text-gray-400" />
               <span>{todo.updatedBy}</span>
-              <span>{new Date(todo.updatedAt).toLocaleString()}</span>
+              <span className="text-gray-400">
+                {new Date(todo.updatedAt).toLocaleString()}
+              </span>
             </div>
           )}
         </div>
@@ -80,6 +98,7 @@ const TodoItem = ({
           size="icon"
           onClick={() => startEditing(todo)}
           disabled={editingId === todo.id}
+          className="text-gray-600 hover:bg-gray-100 hover:text-gray-800"
         >
           <Edit className="w-4 h-4" />
         </Button>
@@ -88,7 +107,7 @@ const TodoItem = ({
           variant="ghost"
           size="icon"
           onClick={() => handleDeleteClick(todo)}
-          className="text-red-600 hover:text-red-700"
+          className="text-red-600 hover:bg-red-50 hover:text-red-700"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
@@ -98,7 +117,7 @@ const TodoItem = ({
             variant="ghost"
             size="icon"
             onClick={() => handleArchiveClick(todo)}
-            className="text-red-600 hover:text-red-700"
+            className="text-purple-600 hover:bg-purple-50 hover:text-purple-700"
           >
             <Archive className="w-4 h-4" />
           </Button>

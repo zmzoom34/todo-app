@@ -1,11 +1,32 @@
-import React, { useState } from "react";
-import { LogOut, Settings, Users, User, X, UserRoundPen, Archive } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  LogOut,
+  Settings,
+  Users,
+  User,
+  X,
+  UserRoundPen,
+  Archive,
+} from "lucide-react";
 import { LuCirclePlus } from "react-icons/lu";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
-import { collection, addDoc, deleteDoc, updateDoc, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
 import { db } from "../firebase-config";
 import AuthComponent from "../components/AuthComponent";
@@ -26,6 +47,7 @@ import { useTodoOperations } from "../hooks/useTodoOperations";
 //import { useTodoForm } from "../hooks/useTodoForm";
 
 const TodoApp = () => {
+  const auth = getAuth();
   const [user, setUser] = useState(null);
   const [newTodo, setNewTodo] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -40,18 +62,49 @@ const TodoApp = () => {
   const [selectedTodoArchive, setSelectedTodoArchive] = useState(null);
   const [isModalAddTodoOpen, setIsModalAddTodoOpen] = useState(false);
   const inputAddTodoRef = useModalFocus(isModalAddTodoOpen);
-  const [nickName, setNickName] = useFetchUserData();
-  const { todos, groups, selectedGroupId, setSelectedGroupId, loading} = useFirebaseSubscriptions(db, user);
-  const { groupTodos } = useGroupTodos(db, { user, selectedGroupId, activeTab });
-  const { archivedTodos } = useArchivedTodos(db, {user, selectedGroupId, activeTab });
-  const { showToastMessage } = useToast()
-  const { newGroupName, setNewGroupName, createGroup } = useGroupCreation(db, user, showToastMessage);
+  const [nickName, setNickName] = useFetchUserData(user);
+  //const [nickName, setNickName] = useState(null);
+  const { todos, groups, selectedGroupId, setSelectedGroupId, loading } =
+    useFirebaseSubscriptions(db, user);
+  const { groupTodos } = useGroupTodos(db, {
+    user,
+    selectedGroupId,
+    activeTab,
+  });
+  const { archivedTodos } = useArchivedTodos(db, {
+    user,
+    selectedGroupId,
+    activeTab,
+  });
+  const { showToastMessage } = useToast();
+  const { newGroupName, setNewGroupName, createGroup } = useGroupCreation(
+    db,
+    user,
+    showToastMessage
+  );
 
-  const auth = getAuth();
-
-  const { deleteTodo, toggleComplete, archiveTodo } = useTodoOperations(db, showToastMessage )
+  const { deleteTodo, toggleComplete, archiveTodo } = useTodoOperations(
+    db,
+    showToastMessage
+  );
 
   //const { addTodo } = useTodoForm(db, user, showToastMessage, newTodo, setNewTodo, nickName, selectedGroupId)
+ // const navigate = useNavigate();
+
+  // useEffect(() => {
+  //   const fetchUserData = async () => {
+  //     const user = auth.currentUser;
+  //     if (!user) return navigate("/");
+
+  //     const userRef = doc(db, "users", user.uid);
+  //     const userSnap = await getDoc(userRef);
+  //     if (userSnap.exists() && userSnap.data().nickName) {
+  //       setNickName(userSnap.data().nickName);
+  //     }
+  //   };
+
+  //   fetchUserData();
+  // }, [navigate, user]);
 
   const joinGroup = async () => {
     if (!groupIdToJoin.trim()) return;
@@ -166,7 +219,11 @@ const TodoApp = () => {
 
   const handleConfirmArchive = async () => {
     if (selectedTodoArchive) {
-      await archiveTodo(selectedTodoArchive, nickName, setIsModalOpenArchive(false));
+      await archiveTodo(
+        selectedTodoArchive,
+        nickName,
+        setIsModalOpenArchive(false)
+      );
     }
   };
 
