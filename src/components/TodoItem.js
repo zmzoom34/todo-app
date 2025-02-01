@@ -2,7 +2,7 @@ import React from "react";
 import { CheckSquare, Square, Edit, Archive, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { ThumbsUp, ThumbsDown, Pen, Settings } from "lucide-react";
+import { ThumbsUp, Pen, Settings } from "lucide-react";
 
 const TodoItem = ({
   todo,
@@ -15,6 +15,7 @@ const TodoItem = ({
   handleDeleteClick,
   handleArchiveClick,
   activeTab,
+  nickName
 }) => {
   return (
     <div
@@ -22,7 +23,7 @@ const TodoItem = ({
         todo.completed ? "bg-gray-50" : "bg-white"
       }`}
     >
-      <button onClick={() => toggleComplete(todo)} className="flex-shrink-0">
+      <button onClick={() => toggleComplete(todo, nickName)} className="flex-shrink-0">
         {todo.completed ? (
           <CheckSquare className="w-6 h-6 text-green-600" />
         ) : (

@@ -1,38 +1,38 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
-export const useGroupTodos = (db, {
+export const useArchivedTodos = (db, {
   user,
   selectedGroupId,
   activeTab
 }) => {
-  const [groupTodos, setGroupTodos] = useState([]);
+  const [archivedTodos, setArchivedTodos] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     // Early return if required conditions aren't met
-    if (!user || !selectedGroupId || activeTab !== "group") {
+    if (!user || !selectedGroupId || activeTab !== "archive") {
       return;
     }
 
-    // Create query for group todos
+    // Create query for archived group todos
     const groupTodoQuery = query(
       collection(db, "todos"),
       where("groupId", "==", selectedGroupId),
       where("type", "==", "group"),
-      where("statue", "==", "active"),
+      where("statue", "==", "archive"),
       orderBy("createdAt", "desc")
     );
 
-    // Subscribe to group todos
+    // Subscribe to archived todos
     const unsubscribeGroupTodos = onSnapshot(
       groupTodoQuery,
       (snapshot) => {
-        const groupTodosData = snapshot.docs.map((doc) => ({
+        const archivedTodosData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setGroupTodos(groupTodosData);
+        setArchivedTodos(archivedTodosData);
         setError(null);
       },
       (error) => {
@@ -46,7 +46,8 @@ export const useGroupTodos = (db, {
   }, [selectedGroupId, user, activeTab, db]);
 
   return {
-    groupTodos,
+    archivedTodos,
+    setArchivedTodos,
     error
   };
 };
