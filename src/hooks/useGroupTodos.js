@@ -21,6 +21,7 @@ export const useGroupTodos = (db, {
       where("groupId", "==", selectedGroupId),
       where("type", "==", "group"),
       where("statue", "==", "active"),
+      orderBy("completed", "asc"), // Add this line
       orderBy("createdAt", "desc")
     );
 
