@@ -7,6 +7,9 @@ const TodoContent = ({ todo }) => (
     <div className="flex items-center gap-2">
       <p className={`${todo.completed ? "line-through text-gray-500" : ""} break-words`}>
         {todo.text}
+        <span className="text-xs text-gray-600"> {todo.amount}</span>
+        <span className="text-xs text-gray-600"> {todo.unit}</span>
+        
       </p>
     </div>
     <div className="space-y-1 mt-2">

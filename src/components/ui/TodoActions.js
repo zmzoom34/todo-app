@@ -28,7 +28,7 @@ const TodoActions = ({ onEdit, onDelete, onArchive, editingId, todoId, showArchi
         variant="ghost"
         size="icon"
         onClick={onArchive}
-        className="text-red-600 hover:text-red-700"
+        className="text-purple-800 hover:text-purple-700"
       >
         <Archive className="w-4 h-4" />
       </Button>

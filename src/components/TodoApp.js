@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { DropdownMenu, DropdownMenuItem } from "./ui/DropdownMenu";
 import {
   LogOut,
   Settings,
@@ -7,6 +8,7 @@ import {
   X,
   UserRoundPen,
   Archive,
+  Menu
 } from "lucide-react";
 import { LuCirclePlus } from "react-icons/lu";
 import {
@@ -18,6 +20,8 @@ import {
 import { Button } from "../components/ui/button";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
+import CategorySelect from "./ui/CatagorySelect";
+import CategoryModal from "./CategoryModal";
 import {
   collection,
   addDoc,
@@ -25,6 +29,7 @@ import {
   updateDoc,
   doc,
   getDoc,
+  setDoc
 } from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
 import { db } from "../firebase-config";
@@ -49,17 +54,25 @@ const TodoApp = () => {
   const auth = getAuth();
   const [user, setUser] = useState(null);
   const [newTodo, setNewTodo] = useState("");
+  const [newTodoCategory, setNewTodoCategory] = useState("");
+  const [newTodoAmount, setNewTodoAmount] = useState("");
+  const [newTodoUnit, setNewTodoUnit] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editUnit, setEditUnit] = useState("");
   const [activeTab, setActiveTab] = useState("group");
   const [groupIdToJoin, setGroupIdToJoin] = useState("");
   const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [showCategoriesSettings, setCategoriesGroupSettings] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isModalOpenArchive, setIsModalOpenArchive] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState(null);
   const [selectedTodoArchive, setSelectedTodoArchive] = useState(null);
   const [isModalAddTodoOpen, setIsModalAddTodoOpen] = useState(false);
+  const [isModalCategoriesOpen, setIsModalCategoriesOpen] = useState(false);
   const inputAddTodoRef = useModalFocus(isModalAddTodoOpen);
   const [nickName, setNickName] = useFetchUserData(user);
   //const [nickName, setNickName] = useState(null);
@@ -88,7 +101,7 @@ const TodoApp = () => {
   );
 
   //const { addTodo } = useTodoForm(db, user, showToastMessage, newTodo, setNewTodo, nickName, selectedGroupId)
- // const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   // useEffect(() => {
   //   const fetchUserData = async () => {
@@ -104,6 +117,49 @@ const TodoApp = () => {
 
   //   fetchUserData();
   // }, [navigate, user]);
+
+  const categories = [
+    { id: "atistirmalikvetatlilar", name: "Atıştırmalık ve tatlılar" },
+    { id: "baharatlarsoslar", name: "Baharatlar ve soslar" },
+    { id: "bahcekendinyap", name: "Bahçe ve kendin yap" },
+    { id: "balikdenizurunleri", name: "Balık ve deniz ürünleri" },
+    { id: "bebek", name: "Bebek" },
+    { id: "diger", name: "Diğer" },
+    { id: "donukurunler", name: "Donuk ürünler" },
+    { id: "elektronikofis", name: "Elektronik ve ofis" },
+    { id: "etkumeshayvanlari", name: "Et ve kümes hayvanları" },
+    { id: "evtemizligi", name: "Ev Temizliği" },
+    { id: "evcilhayvanlar", name: "Evcil hayvanlar" },
+    { id: "evdepisisirme", name: "Evde Pişirme" },
+    { id: "firin", name: "Fırın" },
+    { id: "giyim", name: "Giyim" },
+    { id: "guzellikkisiselbakim", name: "Güzellik ve kişisel bakım" },
+    { id: "haziryemekler", name: "Hazır yemekler" },
+    { id: "icecekler", name: "İçecekler" },
+    { id: "kahvaltilikgevrekmusli", name: "Kahvaltılık gevrek ve müsli" },
+    { id: "kahvecay", name: "Kahve ve çay" },
+    { id: "konservekavanoz", name: "Konserve ve kavanoz" },
+    { id: "meyvesebzeler", name: "Meyve ve sebzeler" },
+    { id: "saglik", name: "Sağlık" },
+    { id: "sutyumurta", name: "Süt ve yumurta" },
+    { id: "tahillarmakarna", name: "Tahıllar ve makarna" },
+    { id: "yaglar", name: "Yağlar" },
+  ];
+
+  // Firestore'a kategorileri yükleme fonksiyonu
+  async function uploadCategories() {
+    try {
+      for (const category of categories) {
+        const categoryRef = doc(collection(db, "categories"), category.id);
+        await setDoc(categoryRef, { name: category.name });
+      }
+      console.log("✅ Kategoriler başarıyla Firestore'a yüklendi!");
+    } catch (error) {
+      console.error("❌ Kategorileri yüklerken hata oluştu:", error);
+    }
+  }
+
+  // uploadCategories()
 
   const joinGroup = async () => {
     if (!groupIdToJoin.trim()) return;
@@ -153,6 +209,9 @@ const TodoApp = () => {
     try {
       const todoData = {
         text: newTodo,
+        amount: newTodoAmount,
+        unit: newTodoUnit,
+        category: newTodoCategory,
         completed: false,
         statue: "active",
         createdAt: new Date().toISOString(),
@@ -188,6 +247,9 @@ const TodoApp = () => {
         text: editText,
         updatedAt: new Date().toISOString(),
         updatedBy: nickName,
+        amount: todo.amount,
+        category: todo.category,
+        unit: todo.unit,
       });
       setEditingId(null);
       setEditText("");
@@ -227,7 +289,7 @@ const TodoApp = () => {
   };
 
   const startEditing = (todo) => {
-    setEditingId(todo.id);
+    setEditingId(todo ? todo.id : null);
     setEditText(todo.text);
   };
 
@@ -332,7 +394,7 @@ const TodoApp = () => {
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader className="flex flex-row items-center justify-between">
+      {/* <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-2xl font-bold">
           Yapılacaklar Listesi
         </CardTitle>
@@ -350,6 +412,13 @@ const TodoApp = () => {
           </Button>
           <Button
             variant="ghost"
+            onClick={() => setIsModalCategoriesOpen(true)}
+          >
+            <UserRoundPen className="w-4 h-4 mr-2" />
+            Kategoriler
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => {
               signOut(auth)
                 .then(() => {
@@ -364,7 +433,40 @@ const TodoApp = () => {
             Çıkış Yap
           </Button>
         </div>
-      </CardHeader>
+      </CardHeader> */}
+
+<CardHeader className="flex flex-row items-center justify-between">
+  <CardTitle className="text-2xl font-bold">Yapılacaklar Listesi</CardTitle>
+
+  <DropdownMenu trigger={<Menu className="w-5 h-5" />}>
+    <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
+      <UserRoundPen className="w-4 h-4 mr-2" />
+      Profil Bilgileri
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={() => setShowGroupSettings(!showGroupSettings)}>
+      <Settings className="w-4 h-4 mr-2" />
+      Grup Ayarları
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={() => setIsModalCategoriesOpen(true)}>
+      <UserRoundPen className="w-4 h-4 mr-2" />
+      Kategoriler
+    </DropdownMenuItem>
+    <DropdownMenuItem
+      onClick={() => {
+        signOut(auth)
+          .then(() => {
+            setUser(null);
+          })
+          .catch((error) => {
+            console.error("Error signing out:", error);
+          });
+      }}
+    >
+      <LogOut className="w-4 h-4 mr-2" />
+      Çıkış Yap
+    </DropdownMenuItem>
+  </DropdownMenu>
+</CardHeader>
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -477,6 +579,7 @@ const TodoApp = () => {
               handleArchiveClick={handleArchiveClick}
               activeTab={activeTab}
               nickName={nickName}
+              setEditCategory={setEditCategory}
             />
           </TabsContent>
 
@@ -544,13 +647,22 @@ const TodoApp = () => {
                         >
                           <TodoInput
                             value={newTodo}
+                            amount={newTodoAmount}
+                            unit={newTodoUnit}
                             onChange={(e) => setNewTodo(e.target.value)}
+                            onChangeAmount={(e) =>
+                              setNewTodoAmount(e.target.value)
+                            }
+                            onChangeUnit={(e) => setNewTodoUnit(e.target.value)}
                             onSubmit={(e) => {
                               addTodo(e);
                               setIsModalAddTodoOpen(false);
+                              setNewTodoAmount("");
+                              setNewTodoUnit("");
                             }}
                             inputRef={inputAddTodoRef}
-                            placeholder="Yeni grup görevi ekle..."
+                            placeholder="Yeni görev ekle..."
+                            setNewTodoCategory={setNewTodoCategory}
                           />
                         </form>
                       </div>
@@ -569,6 +681,8 @@ const TodoApp = () => {
                   handleArchiveClick={handleArchiveClick}
                   activeTab={activeTab}
                   nickName={nickName}
+                  setEditingId={setEditingId}
+                  setEditCategory={setEditCategory}
                 />
               </>
             ) : (
@@ -614,6 +728,8 @@ const TodoApp = () => {
                   handleArchiveClick={handleArchiveClick}
                   activeTab={activeTab}
                   nickName={nickName}
+                  setEditingId={setEditingId}
+                  setEditCategory={setEditCategory}
                 />
               </>
             ) : (
@@ -667,6 +783,13 @@ const TodoApp = () => {
         <ProfileModal
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
+          nickName={nickName}
+          user={user}
+          setNickName={setNickName}
+        />
+        <CategoryModal
+          isOpen={isModalCategoriesOpen}
+          onClose={() => setIsModalCategoriesOpen(false)}
           nickName={nickName}
           user={user}
           setNickName={setNickName}

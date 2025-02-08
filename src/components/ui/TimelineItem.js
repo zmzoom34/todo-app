@@ -2,7 +2,7 @@ const TimelineItem = ({ icon, text, date }) => (
     <div className="flex items-center gap-2 text-xs text-gray-500">
       {icon}
       <span className="truncate">{text}</span>
-      <span className="hidden sm:inline">
+      <span>
         {new Date(date).toLocaleString()}
       </span>
     </div>

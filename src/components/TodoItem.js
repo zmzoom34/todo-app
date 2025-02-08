@@ -3,6 +3,7 @@ import TodoCheckbox from "./ui/TodoCheckbox";
 import TodoEditForm from "./ui/TodoEditForm";
 import TodoContent from "./ui/TodoContent";
 import TodoActions from "./ui/TodoActions";
+import TodoEditModal from "./ui/TodoEditModal";
 
 const TodoItem = ({
   todo,
@@ -15,20 +16,21 @@ const TodoItem = ({
   handleDeleteClick,
   handleArchiveClick,
   activeTab,
-  nickName
+  nickName,
+  setEditingId,
 }) => {
   return (
     <div
-      className={`flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 rounded-lg border ${
+      className={`flex flex-col sm:flex-row items-start gap-2 sm:items-center gap-3 p-3 rounded-lg border ${
         todo.completed ? "bg-gray-50" : "bg-white"
       }`}
     >
-      <TodoCheckbox 
-        completed={todo.completed} 
-        onClick={() => toggleComplete(todo, nickName)} 
+      <TodoCheckbox
+        completed={todo.completed}
+        onClick={() => toggleComplete(todo, nickName)}
       />
 
-      {editingId === todo.id ? (
+      {/* {editingId === todo.id ? (
         <TodoEditForm
           editText={editText}
           setEditText={setEditText}
@@ -36,7 +38,9 @@ const TodoItem = ({
         />
       ) : (
         <TodoContent todo={todo} />
-      )}
+      )} */}
+
+      <TodoContent todo={todo} />
 
       <TodoActions
         onEdit={() => startEditing(todo)}
@@ -45,6 +49,15 @@ const TodoItem = ({
         editingId={editingId}
         todoId={todo.id}
         showArchive={activeTab !== "archive"}
+      />
+
+      <TodoEditModal
+        isOpen={editingId === todo.id}
+        todo={todo}
+        editText={editText}
+        setEditText={setEditText}
+        onSave={saveEdit}
+        onClose={() => setEditingId(null)} // Doğrudan state sıfırlanıyor
       />
     </div>
   );

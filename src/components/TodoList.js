@@ -13,7 +13,8 @@ const TodoList = ({
   handleArchiveClick,
   activeTab,
   user,
-  nickName
+  nickName,
+  setEditingId
 }) => {
   return (
     <div className="space-y-3">
@@ -31,6 +32,7 @@ const TodoList = ({
           handleArchiveClick={handleArchiveClick}
           activeTab={activeTab}
           nickName={nickName}
+          setEditingId={setEditingId}       
         />
       ))}
     </div>
