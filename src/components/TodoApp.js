@@ -95,10 +95,8 @@ const TodoApp = () => {
     showToastMessage
   );
 
-  const { deleteTodo, toggleComplete, archiveTodo } = useTodoOperations(
-    db,
-    showToastMessage
-  );
+  const { deleteTodo, toggleComplete, archiveTodo } = useTodoOperations(db, showToastMessage);
+
 
   //const { addTodo } = useTodoForm(db, user, showToastMessage, newTodo, setNewTodo, nickName, selectedGroupId)
   // const navigate = useNavigate();
@@ -239,24 +237,73 @@ const TodoApp = () => {
     }
   };
 
-  const saveEdit = async (todo) => {
-    if (!editText.trim()) return;
+  // const saveEdit = async (todo) => {
+  //   if (!editText.trim()) return;
 
+  //   try {
+  //     await updateDoc(doc(db, "todos", todo.id), {
+  //       text: editText,
+  //       updatedAt: new Date().toISOString(),
+  //       updatedBy: nickName,
+  //       amount: todo.amount,
+  //       category: todo.category,
+  //       unit: todo.unit,
+  //     });
+  //     setEditingId(null);
+  //     setEditText("");
+  //   } catch (error) {
+  //     console.error("Error updating todo:", error);
+  //     //alert("Todo güncellenirken bir hata oluştu.");
+  //     showToastMessage("Todo güncellenirken bir hata oluştu: )", "warning");
+  //   }
+  // };
+
+  const saveEdit = async (todo) => {
+
+    console.log(editCategory)
+
+    if (!editText.trim()) return;
+  
     try {
-      await updateDoc(doc(db, "todos", todo.id), {
+      // Güncellenecek alanları bir nesne içinde toplayalım
+      const updateData = {
         text: editText,
         updatedAt: new Date().toISOString(),
         updatedBy: nickName,
-        amount: todo.amount,
-        category: todo.category,
-        unit: todo.unit,
-      });
+      };
+  
+      // Sadece değer varsa güncellenecek alanlara ekleyelim
+      if (editAmount !== undefined && editAmount !== '') {
+        updateData.amount = editAmount;
+      } else if (todo.amount) {
+        updateData.amount = todo.amount;
+      }
+  
+      if (editCategory !== undefined && editCategory !== '') {
+        updateData.category = editCategory;
+      } else if (todo.category) {
+        updateData.category = todo.category;
+      }
+  
+      if (editUnit !== undefined && editUnit !== '') {
+        updateData.unit = editUnit;
+      } else if (todo.unit) {
+        updateData.unit = todo.unit;
+      }
+  
+      await updateDoc(doc(db, "todos", todo.id), updateData);
+      
+      // State'leri temizle
       setEditingId(null);
       setEditText("");
+      setEditAmount("");
+      setEditCategory("");
+      setEditUnit("");
+      
+      showToastMessage("Görev başarıyla güncellendi", "success");
     } catch (error) {
       console.error("Error updating todo:", error);
-      //alert("Todo güncellenirken bir hata oluştu.");
-      showToastMessage("Todo güncellenirken bir hata oluştu: )", "warning");
+      showToastMessage("Todo güncellenirken bir hata oluştu: " + error.message, "error");
     }
   };
 
@@ -278,15 +325,42 @@ const TodoApp = () => {
     setSelectedTodo(null);
   };
 
+  // const handleConfirmArchive = async () => {
+  //   if (selectedTodoArchive) {
+  //     await archiveTodo(
+  //       selectedTodoArchive,
+  //       nickName,
+  //       setIsModalOpenArchive(false)
+  //     );
+  //   }
+  // };
+
+  // const handleConfirmArchive = async () => {
+  //   if (selectedTodoArchive) {
+  //     console.log(selectedTodoArchive)
+  //     await archiveTodo(selectedTodoArchive, nickName);
+  //     setIsModalOpenArchive(false);
+  //   }
+  // };
+
   const handleConfirmArchive = async () => {
     if (selectedTodoArchive) {
-      await archiveTodo(
-        selectedTodoArchive,
-        nickName,
-        setIsModalOpenArchive(false)
-      );
+      if (!selectedTodoArchive.completed) {
+        showToastMessage('Tamamlanmamış görev arşivlenemez', 'warning');
+        return false;
+      }
+      const prizeTL = prompt("Lütfen fiyatı TL olarak girin:");
+  
+      if (!prizeTL || isNaN(prizeTL)) {
+        showToastMessage("Geçerli bir TL değeri giriniz.", "warning");
+        return;
+      }
+  
+      await archiveTodo(selectedTodoArchive, nickName, setIsModalOpenArchive, parseFloat(prizeTL));
+      setIsModalOpenArchive(false);
     }
   };
+  
 
   const startEditing = (todo) => {
     setEditingId(todo ? todo.id : null);
@@ -507,14 +581,6 @@ const TodoApp = () => {
           </TabsList>
 
           <TabsContent value="personal">
-            {/* <form onSubmit={addTodo} className="flex gap-2 mb-6">
-              <TodoInput
-                value={newTodo}
-                onChange={(e) => setNewTodo(e.target.value)}
-                onSubmit={addTodo}
-                placeholder="Yeni kişisel görev ekle..."
-              />
-            </form> */}
             <div>
               {/* Modal Açma Butonu */}
 
@@ -580,6 +646,10 @@ const TodoApp = () => {
               activeTab={activeTab}
               nickName={nickName}
               setEditCategory={setEditCategory}
+              setEditingId={setEditingId}
+              setEditAmount={setEditAmount}
+              setEditUnit={setEditUnit}
+              editAmount={editAmount}
             />
           </TabsContent>
 
@@ -683,6 +753,9 @@ const TodoApp = () => {
                   nickName={nickName}
                   setEditingId={setEditingId}
                   setEditCategory={setEditCategory}
+                  setEditAmount={setEditAmount}
+                  setEditUnit={setEditUnit}
+                  editAmount={editAmount}
                 />
               </>
             ) : (
@@ -730,6 +803,9 @@ const TodoApp = () => {
                   nickName={nickName}
                   setEditingId={setEditingId}
                   setEditCategory={setEditCategory}
+                  setEditAmount={setEditAmount}
+                  setEditUnit={setEditUnit}
+                  editAmount={editAmount}
                 />
               </>
             ) : (

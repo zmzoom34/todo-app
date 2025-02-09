@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import CategorySelect from "./CatagorySelect";
-import CategoryModal from "../CategoryModal";
 
 const TodoEditModal = ({
   isOpen,
@@ -11,19 +10,16 @@ const TodoEditModal = ({
   editText,
   setEditText,
   onSave,
-  onChangeAmount,
-  onChangeUnit,
+  setEditCategory,
+  setEditAmount,
+  setEditUnit
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState(
-    todo?.category || ""
-  );
+  // Local states for form management
+  const [selectedCategory, setSelectedCategory] = useState(todo?.category || "");
   const [amount, setAmount] = useState(todo?.amount || "");
   const [unit, setUnit] = useState(todo?.unit || "");
 
-  const [isModalCategoriesOpen, setIsModalCategoriesOpen] = useState(false)
-
-  console.log(todo);
-
+  // Reset form when todo changes
   useEffect(() => {
     if (todo) {
       setEditText(todo.text);
@@ -33,15 +29,26 @@ const TodoEditModal = ({
     }
   }, [todo, setEditText]);
 
+  // Update parent states before saving
   const handleSave = (e) => {
     e.preventDefault();
+
+    
+    
+    // Update parent states
+    setEditCategory(selectedCategory);
+    setEditAmount(amount);
+    setEditUnit(unit);
+
+    // Call onSave with all updated values
     onSave({
       ...todo,
       text: editText,
       category: selectedCategory,
-      amount,
-      unit,
+      amount: amount,
+      unit: unit
     });
+    
     onClose();
   };
 
@@ -82,7 +89,10 @@ const TodoEditModal = ({
           <div className="w-full max-w-xs">
             <CategorySelect
               value={selectedCategory}
-              onValueChange={setSelectedCategory}
+              onValueChange={(value) => {
+                setSelectedCategory(value);
+                setEditCategory(value);
+              }}
             />
           </div>
 
@@ -90,14 +100,20 @@ const TodoEditModal = ({
             <Input
               type="text"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setEditAmount(e.target.value);
+              }}
               placeholder="Miktar"
               className="w-1/2"
             />
             <Input
               type="text"
               value={unit}
-              onChange={(e) => setUnit(e.target.value)}
+              onChange={(e) => {
+                setUnit(e.target.value);
+                setEditUnit(e.target.value);
+              }}
               placeholder="Birim"
               className="w-1/2"
             />

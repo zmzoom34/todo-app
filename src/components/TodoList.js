@@ -12,12 +12,16 @@ const TodoList = ({
   handleDeleteClick,
   handleArchiveClick,
   activeTab,
-  user,
   nickName,
-  setEditingId
+  setEditingId,
+  setEditCategory,
+  setEditAmount,
+  setEditUnit,
+  editAmount
 }) => {
+  // console.log(todos)
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {todos.map((todo) => (
         <TodoItem
           key={todo.id}
@@ -32,7 +36,11 @@ const TodoList = ({
           handleArchiveClick={handleArchiveClick}
           activeTab={activeTab}
           nickName={nickName}
-          setEditingId={setEditingId}       
+          setEditingId={setEditingId}
+          setEditCategory={setEditCategory}
+          setEditAmount={setEditAmount}
+          setEditUnit={setEditUnit}
+          editAmount={editAmount}
         />
       ))}
     </div>

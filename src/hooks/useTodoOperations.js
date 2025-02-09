@@ -1,6 +1,17 @@
 import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
 export const useTodoOperations = (db, showToastMessage) => {
+  const fetchExchangeRate = async () => {
+    try {
+      const response = await fetch("https://api.exchangerate-api.com/v4/latest/TRY");
+      const data = await response.json();
+      return data.rates.USD;
+    } catch (error) {
+      console.error("Error fetching exchange rate:", error);
+      return null;
+    }
+  };
+
   const deleteTodo = async (todo) => {
     try {
       await deleteDoc(doc(db, "todos", todo.id));
@@ -30,17 +41,26 @@ export const useTodoOperations = (db, showToastMessage) => {
     }
   };
 
-  const archiveTodo = async (todo, nickName, setIsModalOpenArchive) => {
+  const archiveTodo = async (todo, nickName, setIsModalOpenArchive, prizeTL) => {
     if (!todo.completed) {
       showToastMessage('Tamamlanmamış görev arşivlenemez', 'warning');
       return false;
     }
 
     try {
+      const exchangeRate = await fetchExchangeRate();
+      if (!exchangeRate) {
+        showToastMessage("Döviz kuru alınamadı, işlem iptal edildi", "error");
+        return false;
+      }
+      const prizeUSD = (prizeTL * exchangeRate).toFixed(2);
+      
       await updateDoc(doc(db, "todos", todo.id), {
-        statue: "archive", // 'statue' yerine 'status' düzeltildi
+        statue: "archive", 
         archivedAt: new Date().toISOString(),
         archivedBy: nickName,
+        prizeTL,
+        prizeUSD,
       });
       showToastMessage("Görev arşivlendi...", "success");
       

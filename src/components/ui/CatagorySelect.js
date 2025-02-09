@@ -13,11 +13,14 @@ const CategorySelect = ({ onValueChange, value }) => {
     const fetchCategories = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "categories"));
-        console.log(querySnapshot)
-        const categoryList = querySnapshot.docs.map(doc => ({
-          value: doc.data().id,
-          label: doc.data().name
-        }));
+        const categoryList = querySnapshot.docs.map(doc => {
+          // console.log("Kategori Verisi:", doc.data()); // Debug için
+          return {
+            value: doc.id,
+            label: doc.data().name
+          };
+        });
+  
         setCategories(categoryList);
         setLoading(false);
       } catch (error) {
@@ -25,9 +28,10 @@ const CategorySelect = ({ onValueChange, value }) => {
         setLoading(false);
       }
     };
-
+  
     fetchCategories();
   }, []);
+  
 
   const selectedLabel = categories.find(cat => cat.value === value)?.label || "Kategori seçin";
 

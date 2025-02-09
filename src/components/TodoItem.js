@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
 import TodoCheckbox from "./ui/TodoCheckbox";
-import TodoEditForm from "./ui/TodoEditForm";
 import TodoContent from "./ui/TodoContent";
 import TodoActions from "./ui/TodoActions";
 import TodoEditModal from "./ui/TodoEditModal";
@@ -18,6 +17,10 @@ const TodoItem = ({
   activeTab,
   nickName,
   setEditingId,
+  setEditCategory,
+  setEditAmount,
+  setEditUnit,
+  editAmount
 }) => {
   return (
     <div
@@ -30,16 +33,6 @@ const TodoItem = ({
         onClick={() => toggleComplete(todo, nickName)}
       />
 
-      {/* {editingId === todo.id ? (
-        <TodoEditForm
-          editText={editText}
-          setEditText={setEditText}
-          onSave={() => saveEdit(todo)}
-        />
-      ) : (
-        <TodoContent todo={todo} />
-      )} */}
-
       <TodoContent todo={todo} />
 
       <TodoActions
@@ -48,16 +41,20 @@ const TodoItem = ({
         onArchive={() => handleArchiveClick(todo)}
         editingId={editingId}
         todoId={todo.id}
-        showArchive={activeTab !== "archive"}
+        showArchive={activeTab !== "archive" && todo.type !== "personal"}
       />
 
       <TodoEditModal
         isOpen={editingId === todo.id}
+        onClose={() => setEditingId(null)}
         todo={todo}
         editText={editText}
         setEditText={setEditText}
         onSave={saveEdit}
-        onClose={() => setEditingId(null)} // Doğrudan state sıfırlanıyor
+        setEditCategory={setEditCategory}
+        setEditAmount={setEditAmount}
+        setEditUnit={setEditUnit}
+        editAmount={editAmount}
       />
     </div>
   );

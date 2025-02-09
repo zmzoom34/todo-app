@@ -18,6 +18,7 @@ export const useFirebaseSubscriptions = (db, user) => {
       collection(db, "todos"),
       where("userId", "==", user.uid),
       where("type", "==", "personal"),
+      where("statue", "==", "active"),
       orderBy("completed", "asc"), // Add this line
       orderBy("createdAt", "desc")
     );
