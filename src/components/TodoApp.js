@@ -8,7 +8,7 @@ import {
   X,
   UserRoundPen,
   Archive,
-  Menu
+  Menu,
 } from "lucide-react";
 import { LuCirclePlus } from "react-icons/lu";
 import {
@@ -20,7 +20,6 @@ import {
 import { Button } from "../components/ui/button";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
-import CategorySelect from "./ui/CatagorySelect";
 import CategoryModal from "./CategoryModal";
 import {
   collection,
@@ -29,7 +28,7 @@ import {
   updateDoc,
   doc,
   getDoc,
-  setDoc
+  //setDoc,
 } from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
 import { db } from "../firebase-config";
@@ -65,7 +64,6 @@ const TodoApp = () => {
   const [activeTab, setActiveTab] = useState("group");
   const [groupIdToJoin, setGroupIdToJoin] = useState("");
   const [showGroupSettings, setShowGroupSettings] = useState(false);
-  const [showCategoriesSettings, setCategoriesGroupSettings] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isModalOpenArchive, setIsModalOpenArchive] = useState(false);
@@ -95,8 +93,10 @@ const TodoApp = () => {
     showToastMessage
   );
 
-  const { deleteTodo, toggleComplete, archiveTodo } = useTodoOperations(db, showToastMessage);
-
+  const { deleteTodo, toggleComplete, archiveTodo } = useTodoOperations(
+    db,
+    showToastMessage
+  );
 
   //const { addTodo } = useTodoForm(db, user, showToastMessage, newTodo, setNewTodo, nickName, selectedGroupId)
   // const navigate = useNavigate();
@@ -116,46 +116,46 @@ const TodoApp = () => {
   //   fetchUserData();
   // }, [navigate, user]);
 
-  const categories = [
-    { id: "atistirmalikvetatlilar", name: "Atıştırmalık ve tatlılar" },
-    { id: "baharatlarsoslar", name: "Baharatlar ve soslar" },
-    { id: "bahcekendinyap", name: "Bahçe ve kendin yap" },
-    { id: "balikdenizurunleri", name: "Balık ve deniz ürünleri" },
-    { id: "bebek", name: "Bebek" },
-    { id: "diger", name: "Diğer" },
-    { id: "donukurunler", name: "Donuk ürünler" },
-    { id: "elektronikofis", name: "Elektronik ve ofis" },
-    { id: "etkumeshayvanlari", name: "Et ve kümes hayvanları" },
-    { id: "evtemizligi", name: "Ev Temizliği" },
-    { id: "evcilhayvanlar", name: "Evcil hayvanlar" },
-    { id: "evdepisisirme", name: "Evde Pişirme" },
-    { id: "firin", name: "Fırın" },
-    { id: "giyim", name: "Giyim" },
-    { id: "guzellikkisiselbakim", name: "Güzellik ve kişisel bakım" },
-    { id: "haziryemekler", name: "Hazır yemekler" },
-    { id: "icecekler", name: "İçecekler" },
-    { id: "kahvaltilikgevrekmusli", name: "Kahvaltılık gevrek ve müsli" },
-    { id: "kahvecay", name: "Kahve ve çay" },
-    { id: "konservekavanoz", name: "Konserve ve kavanoz" },
-    { id: "meyvesebzeler", name: "Meyve ve sebzeler" },
-    { id: "saglik", name: "Sağlık" },
-    { id: "sutyumurta", name: "Süt ve yumurta" },
-    { id: "tahillarmakarna", name: "Tahıllar ve makarna" },
-    { id: "yaglar", name: "Yağlar" },
-  ];
+  // const categories = [
+  //   { id: "atistirmalikvetatlilar", name: "Atıştırmalık ve tatlılar" },
+  //   { id: "baharatlarsoslar", name: "Baharatlar ve soslar" },
+  //   { id: "bahcekendinyap", name: "Bahçe ve kendin yap" },
+  //   { id: "balikdenizurunleri", name: "Balık ve deniz ürünleri" },
+  //   { id: "bebek", name: "Bebek" },
+  //   { id: "diger", name: "Diğer" },
+  //   { id: "donukurunler", name: "Donuk ürünler" },
+  //   { id: "elektronikofis", name: "Elektronik ve ofis" },
+  //   { id: "etkumeshayvanlari", name: "Et ve kümes hayvanları" },
+  //   { id: "evtemizligi", name: "Ev Temizliği" },
+  //   { id: "evcilhayvanlar", name: "Evcil hayvanlar" },
+  //   { id: "evdepisisirme", name: "Evde Pişirme" },
+  //   { id: "firin", name: "Fırın" },
+  //   { id: "giyim", name: "Giyim" },
+  //   { id: "guzellikkisiselbakim", name: "Güzellik ve kişisel bakım" },
+  //   { id: "haziryemekler", name: "Hazır yemekler" },
+  //   { id: "icecekler", name: "İçecekler" },
+  //   { id: "kahvaltilikgevrekmusli", name: "Kahvaltılık gevrek ve müsli" },
+  //   { id: "kahvecay", name: "Kahve ve çay" },
+  //   { id: "konservekavanoz", name: "Konserve ve kavanoz" },
+  //   { id: "meyvesebzeler", name: "Meyve ve sebzeler" },
+  //   { id: "saglik", name: "Sağlık" },
+  //   { id: "sutyumurta", name: "Süt ve yumurta" },
+  //   { id: "tahillarmakarna", name: "Tahıllar ve makarna" },
+  //   { id: "yaglar", name: "Yağlar" },
+  // ];
 
   // Firestore'a kategorileri yükleme fonksiyonu
-  async function uploadCategories() {
-    try {
-      for (const category of categories) {
-        const categoryRef = doc(collection(db, "categories"), category.id);
-        await setDoc(categoryRef, { name: category.name });
-      }
-      console.log("✅ Kategoriler başarıyla Firestore'a yüklendi!");
-    } catch (error) {
-      console.error("❌ Kategorileri yüklerken hata oluştu:", error);
-    }
-  }
+  // async function uploadCategories() {
+  //   try {
+  //     for (const category of categories) {
+  //       const categoryRef = doc(collection(db, "categories"), category.id);
+  //       await setDoc(categoryRef, { name: category.name });
+  //     }
+  //     console.log("✅ Kategoriler başarıyla Firestore'a yüklendi!");
+  //   } catch (error) {
+  //     console.error("❌ Kategorileri yüklerken hata oluştu:", error);
+  //   }
+  // }
 
   // uploadCategories()
 
@@ -237,33 +237,11 @@ const TodoApp = () => {
     }
   };
 
-  // const saveEdit = async (todo) => {
-  //   if (!editText.trim()) return;
-
-  //   try {
-  //     await updateDoc(doc(db, "todos", todo.id), {
-  //       text: editText,
-  //       updatedAt: new Date().toISOString(),
-  //       updatedBy: nickName,
-  //       amount: todo.amount,
-  //       category: todo.category,
-  //       unit: todo.unit,
-  //     });
-  //     setEditingId(null);
-  //     setEditText("");
-  //   } catch (error) {
-  //     console.error("Error updating todo:", error);
-  //     //alert("Todo güncellenirken bir hata oluştu.");
-  //     showToastMessage("Todo güncellenirken bir hata oluştu: )", "warning");
-  //   }
-  // };
-
   const saveEdit = async (todo) => {
-
-    console.log(editCategory)
+    console.log(editCategory);
 
     if (!editText.trim()) return;
-  
+
     try {
       // Güncellenecek alanları bir nesne içinde toplayalım
       const updateData = {
@@ -271,39 +249,42 @@ const TodoApp = () => {
         updatedAt: new Date().toISOString(),
         updatedBy: nickName,
       };
-  
+
       // Sadece değer varsa güncellenecek alanlara ekleyelim
-      if (editAmount !== undefined && editAmount !== '') {
+      if (editAmount !== undefined && editAmount !== "") {
         updateData.amount = editAmount;
       } else if (todo.amount) {
         updateData.amount = todo.amount;
       }
-  
-      if (editCategory !== undefined && editCategory !== '') {
+
+      if (editCategory !== undefined && editCategory !== "") {
         updateData.category = editCategory;
       } else if (todo.category) {
         updateData.category = todo.category;
       }
-  
-      if (editUnit !== undefined && editUnit !== '') {
+
+      if (editUnit !== undefined && editUnit !== "") {
         updateData.unit = editUnit;
       } else if (todo.unit) {
         updateData.unit = todo.unit;
       }
-  
+
       await updateDoc(doc(db, "todos", todo.id), updateData);
-      
+
       // State'leri temizle
       setEditingId(null);
       setEditText("");
       setEditAmount("");
       setEditCategory("");
       setEditUnit("");
-      
+
       showToastMessage("Görev başarıyla güncellendi", "success");
     } catch (error) {
       console.error("Error updating todo:", error);
-      showToastMessage("Todo güncellenirken bir hata oluştu: " + error.message, "error");
+      showToastMessage(
+        "Todo güncellenirken bir hata oluştu: " + error.message,
+        "error"
+      );
     }
   };
 
@@ -325,42 +306,28 @@ const TodoApp = () => {
     setSelectedTodo(null);
   };
 
-  // const handleConfirmArchive = async () => {
-  //   if (selectedTodoArchive) {
-  //     await archiveTodo(
-  //       selectedTodoArchive,
-  //       nickName,
-  //       setIsModalOpenArchive(false)
-  //     );
-  //   }
-  // };
-
-  // const handleConfirmArchive = async () => {
-  //   if (selectedTodoArchive) {
-  //     console.log(selectedTodoArchive)
-  //     await archiveTodo(selectedTodoArchive, nickName);
-  //     setIsModalOpenArchive(false);
-  //   }
-  // };
-
   const handleConfirmArchive = async () => {
     if (selectedTodoArchive) {
       if (!selectedTodoArchive.completed) {
-        showToastMessage('Tamamlanmamış görev arşivlenemez', 'warning');
+        showToastMessage("Tamamlanmamış görev arşivlenemez", "warning");
         return false;
       }
       const prizeTL = prompt("Lütfen fiyatı TL olarak girin:");
-  
+
       if (!prizeTL || isNaN(prizeTL)) {
         showToastMessage("Geçerli bir TL değeri giriniz.", "warning");
         return;
       }
-  
-      await archiveTodo(selectedTodoArchive, nickName, setIsModalOpenArchive, parseFloat(prizeTL));
+
+      await archiveTodo(
+        selectedTodoArchive,
+        nickName,
+        setIsModalOpenArchive,
+        parseFloat(prizeTL)
+      );
       setIsModalOpenArchive(false);
     }
   };
-  
 
   const startEditing = (todo) => {
     setEditingId(todo ? todo.id : null);
@@ -509,38 +476,42 @@ const TodoApp = () => {
         </div>
       </CardHeader> */}
 
-<CardHeader className="flex flex-row items-center justify-between">
-  <CardTitle className="text-2xl font-bold">Yapılacaklar Listesi</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-2xl font-bold">
+          Yapılacaklar Listesi
+        </CardTitle>
 
-  <DropdownMenu trigger={<Menu className="w-5 h-5" />}>
-    <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
-      <UserRoundPen className="w-4 h-4 mr-2" />
-      Profil Bilgileri
-    </DropdownMenuItem>
-    <DropdownMenuItem onClick={() => setShowGroupSettings(!showGroupSettings)}>
-      <Settings className="w-4 h-4 mr-2" />
-      Grup Ayarları
-    </DropdownMenuItem>
-    <DropdownMenuItem onClick={() => setIsModalCategoriesOpen(true)}>
-      <UserRoundPen className="w-4 h-4 mr-2" />
-      Kategoriler
-    </DropdownMenuItem>
-    <DropdownMenuItem
-      onClick={() => {
-        signOut(auth)
-          .then(() => {
-            setUser(null);
-          })
-          .catch((error) => {
-            console.error("Error signing out:", error);
-          });
-      }}
-    >
-      <LogOut className="w-4 h-4 mr-2" />
-      Çıkış Yap
-    </DropdownMenuItem>
-  </DropdownMenu>
-</CardHeader>
+        <DropdownMenu trigger={<Menu className="w-5 h-5" />}>
+          <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
+            <UserRoundPen className="w-4 h-4 mr-2" />
+            Profil Bilgileri
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setShowGroupSettings(!showGroupSettings)}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Grup Ayarları
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setIsModalCategoriesOpen(true)}>
+            <UserRoundPen className="w-4 h-4 mr-2" />
+            Kategoriler
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              signOut(auth)
+                .then(() => {
+                  setUser(null);
+                })
+                .catch((error) => {
+                  console.error("Error signing out:", error);
+                });
+            }}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Çıkış Yap
+          </DropdownMenuItem>
+        </DropdownMenu>
+      </CardHeader>
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -618,7 +589,7 @@ const TodoApp = () => {
                         setIsModalOpen(false);
                       }}
                     >
-                      <TodoInput
+                      {/* <TodoInput
                         value={newTodo}
                         onChange={(e) => setNewTodo(e.target.value)}
                         onSubmit={(e) => {
@@ -627,6 +598,23 @@ const TodoApp = () => {
                         }}
                         inputRef={inputAddTodoRef}
                         placeholder="Yeni kişi görevi ekle..."
+                      /> */}
+                      <TodoInput
+                        value={newTodo}
+                        amount={newTodoAmount}
+                        unit={newTodoUnit}
+                        onChange={(e) => setNewTodo(e.target.value)}
+                        onChangeAmount={(e) => setNewTodoAmount(e.target.value)}
+                        onChangeUnit={(e) => setNewTodoUnit(e.target.value)}
+                        onSubmit={(e) => {
+                          addTodo(e);
+                          setIsModalAddTodoOpen(false);
+                          setNewTodoAmount("");
+                          setNewTodoUnit("");
+                        }}
+                        inputRef={inputAddTodoRef}
+                        placeholder="Yeni görev ekle..."
+                        setNewTodoCategory={setNewTodoCategory}
                       />
                     </form>
                   </div>
