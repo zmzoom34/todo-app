@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { db } from "../firebase-config"; // Firebase bağlantısı
 import {
   collection,
-  addDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -20,6 +19,7 @@ const CategoryModal = ({ isOpen, onClose }) => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [editText, setEditText] = useState("");
   const [editId, setEditId] = useState("");
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -64,10 +64,19 @@ const CategoryModal = ({ isOpen, onClose }) => {
     fetchCategories();
   };
 
-  const handleDeleteCategory = async (categoryId) => {
-    await deleteDoc(doc(db, "categories", categoryId));
+  const confirmDeleteCategory = (category) => {
+    setCategoryToDelete(category);
+  };
+  
+
+  const handleDeleteConfirmed = async () => {
+    if (!categoryToDelete) return;
+  
+    await deleteDoc(doc(db, "categories", categoryToDelete.id));
+    setCategoryToDelete(null);
     fetchCategories();
   };
+  
 
   if (!isOpen) return null;
 
@@ -132,7 +141,7 @@ const CategoryModal = ({ isOpen, onClose }) => {
                       </td>
                       <td className="border border-gray-300 p-2 flex gap-2">
                         <Button size="sm" onClick={handleUpdateCategory}>
-                        <Save className="w-4 h-4" />
+                          <Save className="w-4 h-4" />
                         </Button>
                         <Button
                           size="sm"
@@ -164,12 +173,13 @@ const CategoryModal = ({ isOpen, onClose }) => {
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteCategory(category.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+  size="sm"
+  variant="destructive"
+  onClick={() => confirmDeleteCategory(category)}
+>
+  <Trash2 className="w-4 h-4" />
+</Button>
+
                       </td>
                     </>
                   )}
@@ -178,6 +188,28 @@ const CategoryModal = ({ isOpen, onClose }) => {
             </tbody>
           </table>
         </div>
+        {categoryToDelete && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+              <h2 className="text-lg font-bold mb-4">Silme Onayı</h2>
+              <p>
+                <strong>{categoryToDelete.name}</strong> kategorisini silmek
+                istediğinize emin misiniz?
+              </p>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setCategoryToDelete(null)}
+                >
+                  İptal
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteConfirmed}>
+                  Sil
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

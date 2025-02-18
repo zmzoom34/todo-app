@@ -4,7 +4,6 @@ import TimelineItem from "./TimelineItem";
 
 const TodoContent = ({ todo }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
@@ -13,13 +12,13 @@ const TodoContent = ({ todo }) => {
       <div className="flex items-center gap-2">
         <p className={`${todo.completed ? "line-through text-gray-500" : ""} break-words`}>
           {todo.text}
-          <span className="text-xs text-gray-600"> {todo.amount}</span>
+          <span className="text-xs text-gray-600 ml-3"> {todo.amount}</span>
           <span className="text-xs text-gray-600"> {todo.unit}</span>
         </p>
         
         <button 
           onClick={openModal}
-          className="p-1 hover:bg-gray-100 rounded-full"
+          className="p-1 hover:bg-gray-100 rounded-full ml-2"
         >
           <Clock className="w-4 h-4" />
         </button>
@@ -61,6 +60,11 @@ const TodoContent = ({ todo }) => {
                   date={todo.updatedAt}
                 />
               )}
+              {/* {todo.category && (
+                <p className="text-sm text-gray-700">
+                  {categories.find(cat => cat.value === todo.category)?.label || "Bilinmiyor"}
+                </p>
+              )} */}
               {todo.prizeTL && (
                 <p className='text-xs text-gray-600'>{todo.prizeTL} TL === {todo.prizeUSD} $ </p>
               )}

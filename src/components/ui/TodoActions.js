@@ -1,10 +1,9 @@
 import React from "react";
 import { Edit, Archive, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input"
 
 const TodoActions = ({ onEdit, onDelete, onArchive, editingId, todoId, showArchive }) => (
-  <div className="flex gap-2 flex-shrink-0 mt-3 sm:mt-0 w-full sm:w-auto justify-end">
+  <div className="flex gap-2 flex-shrink-0 mt-1 sm:mt-0 w-full sm:w-auto justify-end">
     <Button
       variant="ghost"
       size="icon"

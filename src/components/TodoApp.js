@@ -1,14 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import emailjs from "emailjs-com";
 import { DropdownMenu, DropdownMenuItem } from "./ui/DropdownMenu";
 import {
   LogOut,
   Settings,
   Users,
   User,
-  X,
   UserRoundPen,
   Archive,
   Menu,
+  Ruler,
+  Bell,
 } from "lucide-react";
 import { LuCirclePlus } from "react-icons/lu";
 import {
@@ -21,6 +23,8 @@ import { Button } from "../components/ui/button";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
 import CategoryModal from "./CategoryModal";
+import UnitModal from "./UnitModal";
+import AddTodoModal from "./ui/AddTodoModal";
 import {
   collection,
   addDoc,
@@ -28,12 +32,12 @@ import {
   updateDoc,
   doc,
   getDoc,
+  getDocs,
   //setDoc,
 } from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
 import { db } from "../firebase-config";
 import AuthComponent from "../components/AuthComponent";
-import TodoInput from "../components/TodoInput";
 import TodoList from "../components/TodoList";
 import GroupSettingsModal from "../components/GroupSettingsModal";
 import { ToastContainer } from "react-toastify";
@@ -47,7 +51,12 @@ import { useArchivedTodos } from "../hooks/useArchivedTodos";
 import { useGroupCreation } from "../hooks/useGroupCreation";
 import { useToast } from "../hooks/useToast";
 import { useTodoOperations } from "../hooks/useTodoOperations";
-//import { useTodoForm } from "../hooks/useTodoForm";
+import useUserData from "../hooks/useUserData";
+import useFetchCategories from "../hooks/useFetchCategories";
+import ReportModal from "../components/ReportModal"; // Rapor modal bileşeni
+import Notification from "./Notification";
+import { requestNotificationPermission } from "../firebase-config";
+//import ReportModal from "../../public/"; // Rapor modal bileşeni
 
 const TodoApp = () => {
   const auth = getAuth();
@@ -71,9 +80,22 @@ const TodoApp = () => {
   const [selectedTodoArchive, setSelectedTodoArchive] = useState(null);
   const [isModalAddTodoOpen, setIsModalAddTodoOpen] = useState(false);
   const [isModalCategoriesOpen, setIsModalCategoriesOpen] = useState(false);
+  const [isModalUnitsOpen, setIsModalUnitsOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  
+  // const resendApiKey = process.env.REACT_APP_RESEND_API_KEY;
+  // console.log(resendApiKey)
+  //const resend = new Resend("re_NgSMPyhN_2fG4eZjY1sgBZZJ2QrmygfWs");
+
+  // Add new state for notification permission
+  const [notificationPermission, setNotificationPermission] =
+    useState("default");
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toISOString().slice(0, 7)
+  ); // YYYY-MM
+  const [monthlyReport, setMonthlyReport] = useState(null);
   const inputAddTodoRef = useModalFocus(isModalAddTodoOpen);
   const [nickName, setNickName] = useFetchUserData(user);
-  //const [nickName, setNickName] = useState(null);
   const { todos, groups, selectedGroupId, setSelectedGroupId, loading } =
     useFirebaseSubscriptions(db, user);
   const { groupTodos } = useGroupTodos(db, {
@@ -86,6 +108,7 @@ const TodoApp = () => {
     selectedGroupId,
     activeTab,
   });
+
   const { showToastMessage } = useToast();
   const { newGroupName, setNewGroupName, createGroup } = useGroupCreation(
     db,
@@ -98,66 +121,62 @@ const TodoApp = () => {
     showToastMessage
   );
 
-  //const { addTodo } = useTodoForm(db, user, showToastMessage, newTodo, setNewTodo, nickName, selectedGroupId)
-  // const navigate = useNavigate();
+  const { todosAll } = useUserData(user);
+
+  const { categories } = useFetchCategories();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  // Request notification permission on component mount
+  // useEffect(() => {
+  //   if ("Notification" in window) {
+  //     // Check if we already have permission
+  //     setNotificationPermission(Notification.permission);
+
+  //     if (Notification.permission === "default") {
+  //       Notification.requestPermission().then((permission) => {
+  //         setNotificationPermission(permission);
+  //       });
+  //     }
+  //   }
+  // }, []);
 
   // useEffect(() => {
-  //   const fetchUserData = async () => {
-  //     const user = auth.currentUser;
-  //     if (!user) return navigate("/");
+  //   requestNotificationPermission();
+  // }, []);
 
-  //     const userRef = doc(db, "users", user.uid);
-  //     const userSnap = await getDoc(userRef);
-  //     if (userSnap.exists() && userSnap.data().nickName) {
-  //       setNickName(userSnap.data().nickName);
-  //     }
-  //   };
+  // Function to send notification
+  const sendNotification = (todoText, createdBy) => {
+    if (!("Notification" in window)) {
+      console.log("This browser does not support notifications");
+      return;
+    }
 
-  //   fetchUserData();
-  // }, [navigate, user]);
+    if (notificationPermission === "granted") {
+      const notification = new Notification("Yeni Görev Eklendi!", {
+        body: `${createdBy} tarafından yeni bir görev eklendi: ${todoText}`,
+        icon: "../../public/favicon.ico", // Add your app's icon path here
+        badge: "../../public/favicon.ico", // Add your app's badge icon path here
+        vibrate: [200, 100, 200],
+      });
 
-  // const categories = [
-  //   { id: "atistirmalikvetatlilar", name: "Atıştırmalık ve tatlılar" },
-  //   { id: "baharatlarsoslar", name: "Baharatlar ve soslar" },
-  //   { id: "bahcekendinyap", name: "Bahçe ve kendin yap" },
-  //   { id: "balikdenizurunleri", name: "Balık ve deniz ürünleri" },
-  //   { id: "bebek", name: "Bebek" },
-  //   { id: "diger", name: "Diğer" },
-  //   { id: "donukurunler", name: "Donuk ürünler" },
-  //   { id: "elektronikofis", name: "Elektronik ve ofis" },
-  //   { id: "etkumeshayvanlari", name: "Et ve kümes hayvanları" },
-  //   { id: "evtemizligi", name: "Ev Temizliği" },
-  //   { id: "evcilhayvanlar", name: "Evcil hayvanlar" },
-  //   { id: "evdepisisirme", name: "Evde Pişirme" },
-  //   { id: "firin", name: "Fırın" },
-  //   { id: "giyim", name: "Giyim" },
-  //   { id: "guzellikkisiselbakim", name: "Güzellik ve kişisel bakım" },
-  //   { id: "haziryemekler", name: "Hazır yemekler" },
-  //   { id: "icecekler", name: "İçecekler" },
-  //   { id: "kahvaltilikgevrekmusli", name: "Kahvaltılık gevrek ve müsli" },
-  //   { id: "kahvecay", name: "Kahve ve çay" },
-  //   { id: "konservekavanoz", name: "Konserve ve kavanoz" },
-  //   { id: "meyvesebzeler", name: "Meyve ve sebzeler" },
-  //   { id: "saglik", name: "Sağlık" },
-  //   { id: "sutyumurta", name: "Süt ve yumurta" },
-  //   { id: "tahillarmakarna", name: "Tahıllar ve makarna" },
-  //   { id: "yaglar", name: "Yağlar" },
-  // ];
+      notification.onclick = function () {
+        window.focus();
+        notification.close();
+      };
+    }
+  };
 
-  // Firestore'a kategorileri yükleme fonksiyonu
-  // async function uploadCategories() {
-  //   try {
-  //     for (const category of categories) {
-  //       const categoryRef = doc(collection(db, "categories"), category.id);
-  //       await setDoc(categoryRef, { name: category.name });
-  //     }
-  //     console.log("✅ Kategoriler başarıyla Firestore'a yüklendi!");
-  //   } catch (error) {
-  //     console.error("❌ Kategorileri yüklerken hata oluştu:", error);
-  //   }
-  // }
-
-  // uploadCategories()
+  // Filtrelenmiş arşivlenen görevler
+  const filteredArchivedTodos = archivedTodos.filter((todo) => {
+    const matchesSearch = todo.text
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory
+      ? todo.category === selectedCategory
+      : true;
+    return matchesSearch && matchesCategory;
+  });
 
   const joinGroup = async () => {
     if (!groupIdToJoin.trim()) return;
@@ -200,6 +219,126 @@ const TodoApp = () => {
     }
   };
 
+  const openReportModal = () => setIsReportModalOpen(true);
+  const closeReportModal = () => setIsReportModalOpen(false);
+
+  const generateMonthlyReport = () => {
+    const filteredTodos = archivedTodos.filter((todo) =>
+      todo.archivedAt.startsWith(selectedMonth)
+    );
+
+    const totalArchived = filteredTodos.length;
+
+    // Kategori bazlı istatistikler (Toplam Sayı ve Harcama)
+    const categoryStats = filteredTodos.reduce((acc, todo) => {
+      if (!acc[todo.category]) {
+        acc[todo.category] = { count: 0, totalPrize: 0 };
+      }
+      acc[todo.category].count += 1;
+      acc[todo.category].totalPrize += todo.prizeTL
+        ? parseFloat(todo.prizeTL)
+        : 0;
+      return acc;
+    }, {});
+
+    // Kullanıcı bazlı istatistikler
+    const userStats = filteredTodos.reduce((acc, todo) => {
+      acc[todo.archivedBy] = (acc[todo.archivedBy] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Toplam harcanan ücret
+    const totalPrize = filteredTodos.reduce(
+      (sum, todo) => sum + (todo.prizeTL ? parseFloat(todo.prizeTL) : 0),
+      0
+    );
+
+    // Detaylı görev listesi
+    const taskDetails = filteredTodos.map((todo) => ({
+      text: todo.text,
+      archivedBy: todo.archivedBy,
+      amount: todo.amount,
+      unit: todo.unit,
+      archivedAt: new Date(todo.archivedAt).toLocaleDateString(),
+      category:
+        categories.find((c) => c.value === todo.category)?.label ||
+        todo.category,
+      prize: todo.prizeTL ? `${todo.prizeTL} TL` : "—",
+    }));
+
+    setMonthlyReport({
+      totalArchived,
+      categoryStats,
+      userStats,
+      totalPrize,
+      taskDetails,
+      selectedMonth,
+    });
+
+    openReportModal();
+  };
+
+  const sendGroupEmail = async (groupId, todoText, creatorName) => {
+    try {
+      const groupRef = doc(db, "groups", groupId);
+      const groupSnap = await getDoc(groupRef);
+      
+      if (!groupSnap.exists()) {
+        console.log("Grup bulunamadı.");
+        return;
+      }
+      
+      const groupData = groupSnap.data();
+      const userIds = groupData.members || []; // UID dizisini al
+      
+      // Kullanıcı UID'lerine göre e-posta adreslerini al
+      const emails = [];
+      
+      for (const userId of userIds) {
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+      
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          if (userData.email) {
+            emails.push(userData.email);
+          }
+        }
+      }
+  
+      if (emails.length === 0) {
+        console.log("Grup üyeleri için e-posta adresi bulunamadı.");
+        return;
+      }
+  
+      // EmailJS için diziyi string formatına çevir (virgülle ayır)
+      const emailList = emails.join(",");
+
+      console.log("E-posta adresleri:", emails);
+
+  
+      const templateParams = {
+        to_email: emailList, // Virgülle ayrılmış string formatında
+        subject: "Yeni Bir Görev Eklendi!",
+        message: `${creatorName} tarafından yeni bir görev eklendi: "${todoText}".`,
+      };
+  
+      await emailjs.send(
+        "service_k4vmxr7",
+        "template_pdhcv8b",
+        templateParams,
+        "Gy3c-c1gdbL79CD8a"
+      );
+  
+      console.log("E-posta başarıyla gönderildi!");
+      
+    } catch (error) {
+      console.error("E-posta gönderme hatası:", error);
+    }
+  };
+  
+
+  // Modify the addTodo function to include notification
   const addTodo = async (e) => {
     e.preventDefault();
     if (!newTodo.trim()) return;
@@ -228,12 +367,35 @@ const TodoApp = () => {
       }
 
       await addDoc(collection(db, "todos"), todoData);
+
+      // Send notification for new todo
+      //sendNotification(newTodo, nickName);
+
+      if (activeTab === "group") {
+        sendGroupEmail(selectedGroupId, newTodo, nickName);
+      }
+
       setNewTodo("");
       showToastMessage("Görev başarıyla eklendi :)", "success");
     } catch (error) {
       console.error("Error adding todo:", error);
-      //alert("Todo eklenirken bir hata oluştu.");
       showToastMessage("Todo eklenirken bir hata oluştu. :)", "warning");
+    }
+  };
+
+  // Add notification permission request button if needed
+  const requestNotificationPermission = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === "granted") {
+        showToastMessage("Bildirim izni verildi!", "success");
+      } else {
+        showToastMessage("Bildirim izni reddedildi.", "warning");
+      }
+    } catch (error) {
+      console.error("Error requesting notification permission:", error);
+      showToastMessage("Bildirim izni alınırken hata oluştu.", "error");
     }
   };
 
@@ -435,46 +597,6 @@ const TodoApp = () => {
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      {/* <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-2xl font-bold">
-          Yapılacaklar Listesi
-        </CardTitle>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => setIsProfileModalOpen(true)}>
-            <UserRoundPen className="w-4 h-4 mr-2" />
-            Profil Bilgileri
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setShowGroupSettings(!showGroupSettings)}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Grup Ayarları
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setIsModalCategoriesOpen(true)}
-          >
-            <UserRoundPen className="w-4 h-4 mr-2" />
-            Kategoriler
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              signOut(auth)
-                .then(() => {
-                  setUser(null);
-                })
-                .catch((error) => {
-                  console.error("Error signing out:", error);
-                });
-            }}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Çıkış Yap
-          </Button>
-        </div>
-      </CardHeader> */}
 
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-2xl font-bold">
@@ -482,6 +604,12 @@ const TodoApp = () => {
         </CardTitle>
 
         <DropdownMenu trigger={<Menu className="w-5 h-5" />}>
+          <DropdownMenuItem onClick={requestNotificationPermission}>
+            <Bell className="w-4 h-4 mr-2" />
+            {notificationPermission === "granted"
+              ? "Bildirimler Açık"
+              : "Bildirimleri Aç"}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
             <UserRoundPen className="w-4 h-4 mr-2" />
             Profil Bilgileri
@@ -495,6 +623,10 @@ const TodoApp = () => {
           <DropdownMenuItem onClick={() => setIsModalCategoriesOpen(true)}>
             <UserRoundPen className="w-4 h-4 mr-2" />
             Kategoriler
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setIsModalUnitsOpen(true)}>
+            <Ruler className="w-4 h-4 mr-2" />
+            Birimler
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -554,72 +686,28 @@ const TodoApp = () => {
           <TabsContent value="personal">
             <div>
               {/* Modal Açma Butonu */}
-
               <LuCirclePlus
                 onClick={() => setIsModalAddTodoOpen(true)}
-                className="h-6 w-6 cursor-pointer"
+                className="h-6 w-6 cursor-pointer mb-2"
               />
 
               {/* Modal */}
-              {isModalAddTodoOpen && (
-                <div
-                  className="fixed inset-0 bg-black/50 flex items-center justify-center"
-                  onClick={() => setIsModalAddTodoOpen(false)}
-                >
-                  <div
-                    className="bg-white p-6 rounded-lg w-full max-w-md mx-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {/* Modal Başlık ve Kapatma Butonu */}
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">Yeni Görev Ekle</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsModalAddTodoOpen(false)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {/* TodoInput Formu */}
-                    <form
-                      onSubmit={(e) => {
-                        addTodo(e);
-                        setIsModalOpen(false);
-                      }}
-                    >
-                      {/* <TodoInput
-                        value={newTodo}
-                        onChange={(e) => setNewTodo(e.target.value)}
-                        onSubmit={(e) => {
-                          addTodo(e);
-                          setIsModalAddTodoOpen(false);
-                        }}
-                        inputRef={inputAddTodoRef}
-                        placeholder="Yeni kişi görevi ekle..."
-                      /> */}
-                      <TodoInput
-                        value={newTodo}
-                        amount={newTodoAmount}
-                        unit={newTodoUnit}
-                        onChange={(e) => setNewTodo(e.target.value)}
-                        onChangeAmount={(e) => setNewTodoAmount(e.target.value)}
-                        onChangeUnit={(e) => setNewTodoUnit(e.target.value)}
-                        onSubmit={(e) => {
-                          addTodo(e);
-                          setIsModalAddTodoOpen(false);
-                          setNewTodoAmount("");
-                          setNewTodoUnit("");
-                        }}
-                        inputRef={inputAddTodoRef}
-                        placeholder="Yeni görev ekle..."
-                        setNewTodoCategory={setNewTodoCategory}
-                      />
-                    </form>
-                  </div>
-                </div>
-              )}
+              <AddTodoModal
+                todos={todosAll}
+                isOpen={isModalAddTodoOpen}
+                onClose={() => setIsModalAddTodoOpen(false)}
+                addTodo={addTodo}
+                newTodo={newTodo}
+                setNewTodo={setNewTodo}
+                newTodoAmount={newTodoAmount}
+                setNewTodoAmount={setNewTodoAmount}
+                newTodoUnit={newTodoUnit}
+                setNewTodoUnit={setNewTodoUnit}
+                setNewTodoCategory={setNewTodoCategory}
+                newTodoCategory={newTodoCategory}
+                inputRef={inputAddTodoRef}
+                categories={categories}
+              />
             </div>
             <TodoList
               todos={todos}
@@ -638,6 +726,7 @@ const TodoApp = () => {
               setEditAmount={setEditAmount}
               setEditUnit={setEditUnit}
               editAmount={editAmount}
+              categories={categories}
             />
           </TabsContent>
 
@@ -657,14 +746,6 @@ const TodoApp = () => {
                     ))}
                   </select>
                 </div>
-                {/* <form onSubmit={addTodo} className="flex gap-2 mb-6">
-                  <TodoInput
-                    value={newTodo}
-                    onChange={(e) => setNewTodo(e.target.value)}
-                    onSubmit={addTodo}
-                    placeholder="Yeni grup görevi ekle..."
-                  />
-                </form> */}
                 <div>
                   {/* Modal Açma Butonu */}
                   <LuCirclePlus
@@ -673,59 +754,22 @@ const TodoApp = () => {
                   />
 
                   {/* Modal */}
-                  {isModalAddTodoOpen && (
-                    <div
-                      className="fixed inset-0 bg-black/50 flex items-center justify-center"
-                      onClick={() => setIsModalAddTodoOpen(false)}
-                    >
-                      <div
-                        className="bg-white p-6 rounded-lg w-full max-w-md mx-4"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {/* Modal Başlık ve Kapatma Butonu */}
-                        <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-lg font-semibold">
-                            Yeni Görev Ekle
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsModalAddTodoOpen(false)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        {/* TodoInput Formu */}
-                        <form
-                          onSubmit={(e) => {
-                            addTodo(e);
-                            setIsModalAddTodoOpen(false);
-                          }}
-                        >
-                          <TodoInput
-                            value={newTodo}
-                            amount={newTodoAmount}
-                            unit={newTodoUnit}
-                            onChange={(e) => setNewTodo(e.target.value)}
-                            onChangeAmount={(e) =>
-                              setNewTodoAmount(e.target.value)
-                            }
-                            onChangeUnit={(e) => setNewTodoUnit(e.target.value)}
-                            onSubmit={(e) => {
-                              addTodo(e);
-                              setIsModalAddTodoOpen(false);
-                              setNewTodoAmount("");
-                              setNewTodoUnit("");
-                            }}
-                            inputRef={inputAddTodoRef}
-                            placeholder="Yeni görev ekle..."
-                            setNewTodoCategory={setNewTodoCategory}
-                          />
-                        </form>
-                      </div>
-                    </div>
-                  )}
+                  <AddTodoModal
+                    todos={todosAll}
+                    isOpen={isModalAddTodoOpen}
+                    onClose={() => setIsModalAddTodoOpen(false)}
+                    addTodo={addTodo}
+                    newTodo={newTodo}
+                    setNewTodo={setNewTodo}
+                    newTodoAmount={newTodoAmount}
+                    setNewTodoAmount={setNewTodoAmount}
+                    newTodoUnit={newTodoUnit}
+                    setNewTodoUnit={setNewTodoUnit}
+                    setNewTodoCategory={setNewTodoCategory}
+                    newTodoCategory={newTodoCategory}
+                    inputRef={inputAddTodoRef}
+                    categories={categories}
+                  />
                 </div>
                 <TodoList
                   todos={groupTodos}
@@ -744,6 +788,7 @@ const TodoApp = () => {
                   setEditAmount={setEditAmount}
                   setEditUnit={setEditUnit}
                   editAmount={editAmount}
+                  categories={categories}
                 />
               </>
             ) : (
@@ -777,8 +822,60 @@ const TodoApp = () => {
                     ))}
                   </select>
                 </div>
+                <div className="mb-4 flex gap-2">
+                  {/* Tarih Seçici */}
+                  <input
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="p-2 border rounded-md"
+                  />
+
+                  {/* Raporu Göster Butonu */}
+                  <button
+                    onClick={generateMonthlyReport}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
+                  >
+                    📊 Aylık Raporu Görüntüle
+                  </button>
+                </div>
+
+                {/* Rapor Modalı */}
+                {isReportModalOpen && (
+                  <ReportModal
+                    isOpen={isReportModalOpen}
+                    onClose={closeReportModal}
+                    reportData={monthlyReport}
+                    categories={categories}
+                  />
+                )}
+
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+                  {/* Arama Kutusu */}
+                  <input
+                    type="text"
+                    placeholder="Arşivde ara..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                  />
+
+                  {/* Kategori Seçici */}
+                  <select
+                    className="p-2 border rounded-md"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    <option value="">Tüm Kategoriler</option>
+                    {categories.map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <TodoList
-                  todos={archivedTodos}
+                  todos={filteredArchivedTodos} // Filtrelenmiş görevleri göster
                   editingId={editingId}
                   editText={editText}
                   setEditText={setEditText}
@@ -794,6 +891,7 @@ const TodoApp = () => {
                   setEditAmount={setEditAmount}
                   setEditUnit={setEditUnit}
                   editAmount={editAmount}
+                  categories={categories}
                 />
               </>
             ) : (
@@ -858,7 +956,12 @@ const TodoApp = () => {
           user={user}
           setNickName={setNickName}
         />
+        <UnitModal
+          isOpen={isModalUnitsOpen}
+          onClose={() => setIsModalUnitsOpen(false)}
+        />
         <ToastContainer />
+        {/* <Notification /> */}
       </CardContent>
     </Card>
   );

@@ -17,9 +17,9 @@ const TodoList = ({
   setEditCategory,
   setEditAmount,
   setEditUnit,
-  editAmount
+  editAmount,
+  categories
 }) => {
-  // console.log(todos)
   return (
     <div className="space-y-2">
       {todos.map((todo) => (
@@ -41,6 +41,7 @@ const TodoList = ({
           setEditAmount={setEditAmount}
           setEditUnit={setEditUnit}
           editAmount={editAmount}
+          categories={categories}
         />
       ))}
     </div>

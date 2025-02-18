@@ -1,7 +1,7 @@
 {
   "hosting": {
-    "site": "todo-app34",  
-    "public": "build",    
+    "site": "todo-app34",
+    "public": "build",
     "ignore": [
       "firebase.json",
       "**/.*",

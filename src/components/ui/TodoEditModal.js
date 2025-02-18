@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import CategorySelect from "./CatagorySelect";
+import { db } from "../../firebase-config"; // Firestore bağlantısı
+import { collection, getDocs } from "firebase/firestore";
 
 const TodoEditModal = ({
   isOpen,
@@ -12,14 +14,14 @@ const TodoEditModal = ({
   onSave,
   setEditCategory,
   setEditAmount,
-  setEditUnit
+  setEditUnit,
+  categories
 }) => {
-  // Local states for form management
   const [selectedCategory, setSelectedCategory] = useState(todo?.category || "");
   const [amount, setAmount] = useState(todo?.amount || "");
   const [unit, setUnit] = useState(todo?.unit || "");
+  const [unitOptions, setUnitOptions] = useState([]); // Firestore'dan gelen birimler
 
-  // Reset form when todo changes
   useEffect(() => {
     if (todo) {
       setEditText(todo.text);
@@ -29,18 +31,28 @@ const TodoEditModal = ({
     }
   }, [todo, setEditText]);
 
-  // Update parent states before saving
+  // Firestore'dan birimleri çek
+  useEffect(() => {
+    const fetchUnits = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "units"));
+        const unitsList = querySnapshot.docs.map((doc) => doc.data().name); // 'name' alanını al
+        setUnitOptions(unitsList);
+      } catch (error) {
+        console.error("Birimleri çekerken hata oluştu:", error);
+      }
+    };
+
+    fetchUnits();
+  }, []);
+
   const handleSave = (e) => {
     e.preventDefault();
 
-    
-    
-    // Update parent states
     setEditCategory(selectedCategory);
     setEditAmount(amount);
     setEditUnit(unit);
 
-    // Call onSave with all updated values
     onSave({
       ...todo,
       text: editText,
@@ -48,7 +60,7 @@ const TodoEditModal = ({
       amount: amount,
       unit: unit
     });
-    
+
     onClose();
   };
 
@@ -93,6 +105,7 @@ const TodoEditModal = ({
                 setSelectedCategory(value);
                 setEditCategory(value);
               }}
+              categories={categories}
             />
           </div>
 
@@ -107,16 +120,21 @@ const TodoEditModal = ({
               placeholder="Miktar"
               className="w-1/2"
             />
-            <Input
-              type="text"
+            <select
               value={unit}
               onChange={(e) => {
                 setUnit(e.target.value);
                 setEditUnit(e.target.value);
               }}
-              placeholder="Birim"
-              className="w-1/2"
-            />
+              className="w-1/2 border rounded-lg p-2 bg-white text-gray-700"
+            >
+              <option value="">Birim Seç</option>
+              {unitOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end gap-2 mt-6">
