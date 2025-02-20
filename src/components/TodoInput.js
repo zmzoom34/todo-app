@@ -119,7 +119,7 @@ const TodoInput = ({
 
       <div className="flex gap-2">
         <Input
-          type="text"
+          type="number"
           value={amount}
           onChange={onChangeAmount}
           placeholder="Miktar"

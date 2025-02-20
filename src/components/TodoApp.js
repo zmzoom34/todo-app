@@ -55,6 +55,7 @@ import useUserData from "../hooks/useUserData";
 import useFetchCategories from "../hooks/useFetchCategories";
 import ReportModal from "../components/ReportModal"; // Rapor modal bileşeni
 import Notification from "./Notification";
+import PriceInputModal from "./ui/PriceInputModal";
 import { requestNotificationPermission } from "../firebase-config";
 //import ReportModal from "../../public/"; // Rapor modal bileşeni
 
@@ -82,7 +83,8 @@ const TodoApp = () => {
   const [isModalCategoriesOpen, setIsModalCategoriesOpen] = useState(false);
   const [isModalUnitsOpen, setIsModalUnitsOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+
   // const resendApiKey = process.env.REACT_APP_RESEND_API_KEY;
   // console.log(resendApiKey)
   //const resend = new Resend("re_NgSMPyhN_2fG4eZjY1sgBZZJ2QrmygfWs");
@@ -282,22 +284,22 @@ const TodoApp = () => {
     try {
       const groupRef = doc(db, "groups", groupId);
       const groupSnap = await getDoc(groupRef);
-      
+
       if (!groupSnap.exists()) {
         console.log("Grup bulunamadı.");
         return;
       }
-      
+
       const groupData = groupSnap.data();
       const userIds = groupData.members || []; // UID dizisini al
-      
+
       // Kullanıcı UID'lerine göre e-posta adreslerini al
       const emails = [];
-      
+
       for (const userId of userIds) {
         const userRef = doc(db, "users", userId);
         const userSnap = await getDoc(userRef);
-      
+
         if (userSnap.exists()) {
           const userData = userSnap.data();
           if (userData.email) {
@@ -305,43 +307,57 @@ const TodoApp = () => {
           }
         }
       }
-  
+
       if (emails.length === 0) {
         console.log("Grup üyeleri için e-posta adresi bulunamadı.");
         return;
       }
-  
+
       // EmailJS için diziyi string formatına çevir (virgülle ayır)
       const emailList = emails.join(",");
 
       console.log("E-posta adresleri:", emails);
 
-  
       const templateParams = {
         to_email: emailList, // Virgülle ayrılmış string formatında
         subject: "Yeni Bir Görev Eklendi!",
         message: `${creatorName} tarafından yeni bir görev eklendi: "${todoText}".`,
       };
-  
+
       await emailjs.send(
         "service_k4vmxr7",
         "template_pdhcv8b",
         templateParams,
         "Gy3c-c1gdbL79CD8a"
       );
-  
+
       console.log("E-posta başarıyla gönderildi!");
-      
     } catch (error) {
       console.error("E-posta gönderme hatası:", error);
     }
   };
-  
 
   // Modify the addTodo function to include notification
   const addTodo = async (e) => {
     e.preventDefault();
     if (!newTodo.trim()) return;
+
+    // Validate amount if it's provided
+    if (newTodoAmount) {
+      // Remove any leading/trailing whitespace
+      const trimmedAmount = newTodoAmount.trim();
+
+      // Check if the amount is a valid number (integer or decimal)
+      const isValidNumber = /^\d*\.?\d+$/.test(trimmedAmount);
+
+      if (!isValidNumber) {
+        showToastMessage(
+          "Lütfen geçerli bir sayı giriniz (örn: 5 veya 5.5)",
+          "warning"
+        );
+        return;
+      }
+    }
 
     try {
       const todoData = {
@@ -468,27 +484,49 @@ const TodoApp = () => {
     setSelectedTodo(null);
   };
 
+  // const handleConfirmArchive = async () => {
+  //   if (selectedTodoArchive) {
+  //     if (!selectedTodoArchive.completed) {
+  //       showToastMessage("Tamamlanmamış görev arşivlenemez", "warning");
+  //       return false;
+  //     }
+  //     const prizeTL = prompt("Lütfen fiyatı TL olarak girin:");
+
+  //     if (!prizeTL || isNaN(prizeTL)) {
+  //       showToastMessage("Geçerli bir TL değeri giriniz.", "warning");
+  //       return;
+  //     }
+
+  //     await archiveTodo(
+  //       selectedTodoArchive,
+  //       nickName,
+  //       setIsModalOpenArchive,
+  //       parseFloat(prizeTL)
+  //     );
+  //     setIsModalOpenArchive(false);
+  //   }
+  // };
+
   const handleConfirmArchive = async () => {
     if (selectedTodoArchive) {
       if (!selectedTodoArchive.completed) {
         showToastMessage("Tamamlanmamış görev arşivlenemez", "warning");
         return false;
       }
-      const prizeTL = prompt("Lütfen fiyatı TL olarak girin:");
-
-      if (!prizeTL || isNaN(prizeTL)) {
-        showToastMessage("Geçerli bir TL değeri giriniz.", "warning");
-        return;
-      }
-
-      await archiveTodo(
-        selectedTodoArchive,
-        nickName,
-        setIsModalOpenArchive,
-        parseFloat(prizeTL)
-      );
-      setIsModalOpenArchive(false);
+      setIsPriceModalOpen(true);
     }
+  };
+
+  const handlePriceConfirm = async (price) => {
+    await archiveTodo(
+      selectedTodoArchive,
+      nickName,
+      setIsModalOpenArchive,
+      price
+    );
+    setIsPriceModalOpen(false);
+    setIsModalOpenArchive(false);
+    setSelectedTodoArchive(null);
   };
 
   const startEditing = (todo) => {
@@ -597,7 +635,6 @@ const TodoApp = () => {
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-2xl font-bold">
           Yapılacaklar Listesi
@@ -834,9 +871,9 @@ const TodoApp = () => {
                   {/* Raporu Göster Butonu */}
                   <button
                     onClick={generateMonthlyReport}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
+                    className="text-white px-4 py-2 rounded-md"
                   >
-                    📊 Aylık Raporu Görüntüle
+                    📝
                   </button>
                 </div>
 
@@ -955,6 +992,12 @@ const TodoApp = () => {
           nickName={nickName}
           user={user}
           setNickName={setNickName}
+        />
+        <PriceInputModal
+          isOpen={isPriceModalOpen}
+          onClose={() => setIsPriceModalOpen(false)}
+          onConfirm={handlePriceConfirm}
+          todoText={selectedTodoArchive?.text || ""}
         />
         <UnitModal
           isOpen={isModalUnitsOpen}

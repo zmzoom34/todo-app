@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
 const AuthComponent = ({ onAuthSuccess }) => {
@@ -18,11 +18,20 @@ const AuthComponent = ({ onAuthSuccess }) => {
   const auth = getAuth();
   const db = getFirestore();
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        onAuthSuccess(user);
+      }
+    });
+    return () => unsubscribe();
+  }, [auth, onAuthSuccess]);
+
   const saveUserData = async (user, isNewUser) => {
     try {
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
-      
+
       if (!userSnap.exists() || !userSnap.data().nickName) {
         navigate("/profile");
       }
