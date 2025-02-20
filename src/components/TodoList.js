@@ -25,6 +25,7 @@ const TodoList = ({
       {todos.map((todo) => (
         <TodoItem
           key={todo.id}
+          todos={todos}
           todo={todo}
           editingId={editingId}
           editText={editText}

@@ -6,6 +6,7 @@ import TodoEditModal from "./ui/TodoEditModal";
 
 const TodoItem = ({
   todo,
+  todos,
   editingId,
   editText,
   setEditText,
@@ -44,18 +45,18 @@ const TodoItem = ({
             "Kategori seçilmemiş"}
         </div>
       )}
-              {todo.dueDate ? (
-          <span className="text-xs text-gray-600">
-            ⏳{" "}
-            {new Date(todo.dueDate).toLocaleDateString("tr-TR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </span>
-        ) : (
-          ""
-        )}
+      {todo.dueDate ? (
+        <span className="text-xs text-gray-600">
+          ⏳{" "}
+          {new Date(todo.dueDate).toLocaleDateString("tr-TR", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
+        </span>
+      ) : (
+        ""
+      )}
       <div className="ml-auto">
         <TodoActions
           onEdit={() => startEditing(todo)}
@@ -78,6 +79,7 @@ const TodoItem = ({
         setEditUnit={setEditUnit}
         editAmount={editAmount}
         categories={categories}
+        todos={todos}
       />
     </div>
   );

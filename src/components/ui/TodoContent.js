@@ -26,18 +26,6 @@ const TodoContent = ({ todo }) => {
         >
           <Clock className="w-4 h-4" />
         </button>
-        {/* {todo.dueDate ? (
-          <span className="text-xs text-gray-600">
-            ⏳{" "}
-            {new Date(todo.dueDate).toLocaleDateString("tr-TR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </span>
-        ) : (
-          ""
-        )} */}
       </div>
 
       {/* Custom Modal */}
