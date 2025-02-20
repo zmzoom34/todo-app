@@ -21,7 +21,7 @@ const TodoItem = ({
   setEditAmount,
   setEditUnit,
   editAmount,
-  categories
+  categories,
 }) => {
   //const { categories, loading } = useFetchCategories()
   return (
@@ -37,23 +37,34 @@ const TodoItem = ({
           isArchived={todo.statue === "archive" ? true : false}
         />
         <TodoContent todo={todo} />
-
       </div>
       {todo.category && (
-                <div className="text-sm text-gray-700">
-                  {categories.find(cat => cat.value === todo.category)?.label || "Kategori seçilmemiş"}
-                </div>
-              )}
+        <div className="text-sm text-gray-700">
+          {categories.find((cat) => cat.value === todo.category)?.label ||
+            "Kategori seçilmemiş"}
+        </div>
+      )}
+              {todo.dueDate ? (
+          <span className="text-xs text-gray-600">
+            ⏳{" "}
+            {new Date(todo.dueDate).toLocaleDateString("tr-TR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        ) : (
+          ""
+        )}
       <div className="ml-auto">
-      <TodoActions
-        onEdit={() => startEditing(todo)}
-        onDelete={() => handleDeleteClick(todo)}
-        onArchive={() => handleArchiveClick(todo)}
-        editingId={editingId}
-        todoId={todo.id}
-        showArchive={activeTab !== "archive" && todo.type !== "personal"}
-      />
-
+        <TodoActions
+          onEdit={() => startEditing(todo)}
+          onDelete={() => handleDeleteClick(todo)}
+          onArchive={() => handleArchiveClick(todo)}
+          editingId={editingId}
+          todoId={todo.id}
+          showArchive={activeTab !== "archive" && todo.type !== "personal"}
+        />
       </div>
       <TodoEditModal
         isOpen={editingId === todo.id}

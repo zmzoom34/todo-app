@@ -84,6 +84,7 @@ const TodoApp = () => {
   const [isModalUnitsOpen, setIsModalUnitsOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [newTodoDueDate, setNewTodoDueDate] = useState("");
 
   // const resendApiKey = process.env.REACT_APP_RESEND_API_KEY;
   // console.log(resendApiKey)
@@ -380,6 +381,12 @@ const TodoApp = () => {
           return;
         }
         todoData.groupId = selectedGroupId;
+      }
+
+      if (newTodoDueDate !== "") {
+        // Tarihi Date nesnesine çevir ve ISO formatına dönüştür
+        const dueDate = new Date(newTodoDueDate);
+        todoData.dueDate = dueDate.toISOString(); // 2025-02-19T09:44:16.838Z formatında
       }
 
       await addDoc(collection(db, "todos"), todoData);
@@ -744,6 +751,9 @@ const TodoApp = () => {
                 newTodoCategory={newTodoCategory}
                 inputRef={inputAddTodoRef}
                 categories={categories}
+                newTodoDueDate={newTodoDueDate} // Yeni prop
+                setNewTodoDueDate={setNewTodoDueDate} // Yeni prop
+                todoType={"personal"}
               />
             </div>
             <TodoList
@@ -806,6 +816,7 @@ const TodoApp = () => {
                     newTodoCategory={newTodoCategory}
                     inputRef={inputAddTodoRef}
                     categories={categories}
+                    todoType={"group"}
                   />
                 </div>
                 <TodoList

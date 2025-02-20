@@ -17,14 +17,16 @@ const AddTodoModal = ({
   newTodoCategory,
   setNewTodoCategory,
   inputRef,
-  categories
+  categories,
+  newTodoDueDate,
+  setNewTodoDueDate,
+  todoType
 }) => {
   if (!isOpen) return null;
   const uniqueTodos = todos.filter(
-    (todo, index, self) =>
-      index === self.findIndex((t) => t.text === todo.text)
+    (todo, index, self) => index === self.findIndex((t) => t.text === todo.text)
   );
-  
+
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center"
@@ -53,7 +55,7 @@ const AddTodoModal = ({
           }}
         >
           <TodoInput
-          todos={uniqueTodos}
+            todos={uniqueTodos}
             value={newTodo}
             amount={newTodoAmount}
             unit={newTodoUnit}
@@ -72,6 +74,9 @@ const AddTodoModal = ({
             newTodoCategory={newTodoCategory}
             setNewTodoCategory={setNewTodoCategory}
             categories={categories}
+            newTodoDueDate={newTodoDueDate} // Yeni prop
+            setNewTodoDueDate={setNewTodoDueDate} // Yeni prop
+            todoType={todoType}
           />
         </form>
       </div>

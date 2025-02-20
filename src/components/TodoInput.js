@@ -19,7 +19,10 @@ const TodoInput = ({
   placeholder = "Yeni görev ekle...",
   setNewTodoCategory,
   newTodoCategory,
-  categories
+  categories,
+  newTodoDueDate,
+  setNewTodoDueDate,
+  todoType,
 }) => {
   const [unitOptions, setUnitOptions] = useState([]);
   const [filteredTodos, setFilteredTodos] = useState([]); // 🆕 Filtrelenmiş görevler
@@ -64,18 +67,17 @@ const TodoInput = ({
       }
       return;
     }
-  
+
     const filtered = todos.filter((todo) =>
       todo.text.toLowerCase().includes(value.toLowerCase())
     );
-  
+
     // 🔥 Eğer filtrelenmiş sonuçlar zaten güncelse state güncellenmesin (sonsuz döngü engellenir)
     if (JSON.stringify(filtered) !== JSON.stringify(filteredTodos)) {
       setFilteredTodos(filtered);
       setShowSuggestions(filtered.length > 0);
     }
   }, [value, todos, filteredTodos]);
-  
 
   return (
     <div className="flex flex-col gap-2 w-full relative">
@@ -110,10 +112,10 @@ const TodoInput = ({
       </div>
 
       <div className="m-2">
-        <CategorySelect 
-        onValueChange={setNewTodoCategory}
-        categories={categories}
-        value={newTodoCategory}
+        <CategorySelect
+          onValueChange={setNewTodoCategory}
+          categories={categories}
+          value={newTodoCategory}
         />
       </div>
 
@@ -137,6 +139,21 @@ const TodoInput = ({
             </option>
           ))}
         </select>
+      </div>
+      <div>
+        {todoType === "personal" ? (
+          <div className="flex items-center gap-2 w-full">
+            <label className="text-sm text-gray-700">Hedef Tarih:</label>
+            <input
+              type="date"
+              value={newTodoDueDate}
+              onChange={(e) => setNewTodoDueDate(e.target.value)}
+              className="p-2 border rounded-md mb-2"
+            />
+          </div>
+        ) : (
+          ""
+        )}
       </div>
 
       <Button

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ThumbsUp, Pen, Settings, Clock, X } from 'lucide-react';
+import React, { useState } from "react";
+import { ThumbsUp, Pen, Settings, Clock, X } from "lucide-react";
 import TimelineItem from "./TimelineItem";
 
 const TodoContent = ({ todo }) => {
@@ -10,18 +10,34 @@ const TodoContent = ({ todo }) => {
   return (
     <div className="flex-grow min-w-0 w-full sm:w-auto">
       <div className="flex items-center gap-2">
-        <p className={`${todo.completed ? "line-through text-gray-500" : ""} break-words`}>
+        <p
+          className={`${
+            todo.completed ? "line-through text-gray-500" : ""
+          } break-words`}
+        >
           {todo.text}
           <span className="text-xs text-gray-600 ml-3"> {todo.amount}</span>
           <span className="text-xs text-gray-600"> {todo.unit}</span>
         </p>
-        
-        <button 
+
+        <button
           onClick={openModal}
           className="p-1 hover:bg-gray-100 rounded-full ml-2"
         >
           <Clock className="w-4 h-4" />
         </button>
+        {/* {todo.dueDate ? (
+          <span className="text-xs text-gray-600">
+            ⏳{" "}
+            {new Date(todo.dueDate).toLocaleDateString("tr-TR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        ) : (
+          ""
+        )} */}
       </div>
 
       {/* Custom Modal */}
@@ -31,7 +47,7 @@ const TodoContent = ({ todo }) => {
             {/* Modal Header */}
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Timeline History</h2>
-              <button 
+              <button
                 onClick={closeModal}
                 className="p-1 hover:bg-gray-100 rounded-full"
               >
@@ -43,7 +59,9 @@ const TodoContent = ({ todo }) => {
             <div className="space-y-3">
               {todo.completedBy && (
                 <TimelineItem
-                  icon={<ThumbsUp className="w-3 h-3 text-gray-600 flex-shrink-0" />}
+                  icon={
+                    <ThumbsUp className="w-3 h-3 text-gray-600 flex-shrink-0" />
+                  }
                   text={todo.completedBy}
                   date={todo.updatedAt}
                 />
@@ -55,7 +73,9 @@ const TodoContent = ({ todo }) => {
               />
               {todo.updatedBy && (
                 <TimelineItem
-                  icon={<Settings className="w-3 h-3 text-gray-600 flex-shrink-0" />}
+                  icon={
+                    <Settings className="w-3 h-3 text-gray-600 flex-shrink-0" />
+                  }
                   text={todo.updatedBy}
                   date={todo.updatedAt}
                 />
@@ -66,7 +86,9 @@ const TodoContent = ({ todo }) => {
                 </p>
               )} */}
               {todo.prizeTL && (
-                <p className='text-xs text-gray-600'>{todo.prizeTL} TL === {todo.prizeUSD} $ </p>
+                <p className="text-xs text-gray-600">
+                  {todo.prizeTL} TL === {todo.prizeUSD} ${" "}
+                </p>
               )}
             </div>
           </div>
