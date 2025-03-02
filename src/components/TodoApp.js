@@ -11,6 +11,8 @@ import {
   Menu,
   Ruler,
   Bell,
+  Plus,
+  CirclePlus,
 } from "lucide-react";
 import { LuCirclePlus } from "react-icons/lu";
 import {
@@ -25,6 +27,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
 import CategoryModal from "./CategoryModal";
 import UnitModal from "./UnitModal";
 import AddTodoModal from "./ui/AddTodoModal";
+import AddTodoDirectArchiveModal from "./ui/AddTodoDirectArchiveModal";
 import {
   collection,
   addDoc,
@@ -66,6 +69,7 @@ const TodoApp = () => {
   const [newTodoCategory, setNewTodoCategory] = useState("");
   const [newTodoAmount, setNewTodoAmount] = useState("");
   const [newTodoUnit, setNewTodoUnit] = useState("");
+  const [newTodoPrice, setNewTodoPrice] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
   const [editCategory, setEditCategory] = useState("");
@@ -80,6 +84,7 @@ const TodoApp = () => {
   const [selectedTodo, setSelectedTodo] = useState(null);
   const [selectedTodoArchive, setSelectedTodoArchive] = useState(null);
   const [isModalAddTodoOpen, setIsModalAddTodoOpen] = useState(false);
+  const [isModalAddTodoDirectArchiveOpen, setIsModalAddTodoDirectArchiveOpen] = useState(false);
   const [isModalCategoriesOpen, setIsModalCategoriesOpen] = useState(false);
   const [isModalUnitsOpen, setIsModalUnitsOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -119,7 +124,7 @@ const TodoApp = () => {
     showToastMessage
   );
 
-  const { deleteTodo, toggleComplete, archiveTodo } = useTodoOperations(
+  const { deleteTodo, toggleComplete, archiveTodo, archiveTodoDirect } = useTodoOperations(
     db,
     showToastMessage
   );
@@ -317,7 +322,7 @@ const TodoApp = () => {
       // EmailJS için diziyi string formatına çevir (virgülle ayır)
       const emailList = emails.join(",");
 
-      console.log("E-posta adresleri:", emails);
+      //console.log("E-posta adresleri:", emails);
 
       const templateParams = {
         to_email: emailList, // Virgülle ayrılmış string formatında
@@ -338,9 +343,80 @@ const TodoApp = () => {
     }
   };
 
+  const addTodoDirectArchive = async (e) => {
+    e.preventDefault()
+
+    if (!newTodo.trim()) return;
+
+    // Validate amount if it's provided
+    if (newTodoAmount) {
+      // Remove any leading/trailing whitespace
+      const trimmedAmount = newTodoAmount.trim();
+
+      // Check if the amount is a valid number (integer or decimal)
+      const isValidNumber = /^\d*\.?\d+$/.test(trimmedAmount);
+
+      if (!isValidNumber) {
+        showToastMessage(
+          "Lütfen geçerli bir sayı giriniz (örn: 5 veya 5.5)",
+          "warning"
+        );
+        return;
+      }
+    }
+
+    try {
+      const newTodoData = {
+        text: newTodo || "Bilinmeyen görev", // Required
+        completed: true, // Required
+        userId: user?.uid, // Required
+        createdAt: new Date().toISOString(), // Required
+        updatedAt: new Date().toISOString(), // Required
+        type: activeTab === "personal" ? "personal" : "group", // Required
+        statue: "archive",
+        archivedAt: new Date().toISOString(),
+        archivedBy: nickName,
+        completedBy: nickName,
+        createdBy: nickName,
+        updatedBy: nickName,
+        prizeTL: newTodoPrice,
+        prizeUSD: "",
+        amount: newTodoAmount,
+        unit: newTodoUnit,
+        category: newTodoCategory,
+      };
+
+      if (activeTab === "archive") {
+        if (!selectedGroupId) {
+          alert("Lütfen bir grup seçin");
+          return;
+        }
+        newTodoData.groupId = selectedGroupId;
+      }
+
+      await archiveTodoDirect(
+        newTodoData,
+        nickName,
+        setIsModalAddTodoDirectArchiveOpen,
+        activeTab
+      )
+
+      setIsPriceModalOpen(false);
+      setIsModalOpenArchive(false);
+      setSelectedTodoArchive(null);
+
+      setNewTodo("");
+
+    } catch (error) {
+      console.error("Error adding todo:", error);
+      showToastMessage("Todo eklenirken bir hata oluştu. :)", "warning");
+    }
+  };
+
   // Modify the addTodo function to include notification
   const addTodo = async (e) => {
     e.preventDefault();
+
     if (!newTodo.trim()) return;
 
     // Validate amount if it's provided
@@ -479,8 +555,13 @@ const TodoApp = () => {
   };
 
   const handleArchiveClick = (todo) => {
-    setSelectedTodoArchive(todo);
-    setIsModalOpenArchive(true);
+    console.log(todo.completed)
+    if(todo.completed) {
+      setSelectedTodoArchive(todo);
+      setIsModalOpenArchive(true);
+    } else {
+      showToastMessage("Tamamlanmamış görevler arşivlenemez", "warning")
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -516,20 +597,23 @@ const TodoApp = () => {
 
   const handleConfirmArchive = async () => {
     if (selectedTodoArchive) {
-      if (!selectedTodoArchive.completed) {
-        showToastMessage("Tamamlanmamış görev arşivlenemez", "warning");
-        return false;
-      }
+      // if (!selectedTodoArchive.completed) {
+      //   showToastMessage("Tamamlanmamış görev arşivlenemez", "warning");
+      //   return false;
+      // }
+      //console.log(selectedTodoArchive)
       setIsPriceModalOpen(true);
     }
   };
 
-  const handlePriceConfirm = async (price) => {
+  const handlePriceConfirm = async (price, store, brand) => {
     await archiveTodo(
       selectedTodoArchive,
       nickName,
       setIsModalOpenArchive,
-      price
+      price,
+      store,
+      brand
     );
     setIsPriceModalOpen(false);
     setIsModalOpenArchive(false);
@@ -730,9 +814,9 @@ const TodoApp = () => {
           <TabsContent value="personal">
             <div>
               {/* Modal Açma Butonu */}
-              <LuCirclePlus
+              <CirclePlus
                 onClick={() => setIsModalAddTodoOpen(true)}
-                className="h-6 w-6 cursor-pointer mb-2"
+                className="h-8 w-8 cursor-pointer mb-2"
               />
 
               {/* Modal */}
@@ -795,16 +879,23 @@ const TodoApp = () => {
                 </div>
                 <div>
                   {/* Modal Açma Butonu */}
-                  <LuCirclePlus
+                  <CirclePlus
                     onClick={() => setIsModalAddTodoOpen(true)}
-                    className="h-6 w-6 cursor-pointer m-3"
+                    className="h-8 w-8 cursor-pointer m-3"
                   />
 
                   {/* Modal */}
                   <AddTodoModal
                     todos={todosAll}
                     isOpen={isModalAddTodoOpen}
-                    onClose={() => setIsModalAddTodoOpen(false)}
+                    onClose={() => {
+                      setIsModalAddTodoOpen(false)
+                      setNewTodo("")
+                      setNewTodoCategory("")
+                      setNewTodoAmount("")
+                      setNewTodoUnit("")
+                      setNewTodoPrice("")
+                    }}
                     addTodo={addTodo}
                     newTodo={newTodo}
                     setNewTodo={setNewTodo}
@@ -870,22 +961,55 @@ const TodoApp = () => {
                     ))}
                   </select>
                 </div>
-                <div className="mb-4 flex gap-2">
-                  {/* Tarih Seçici */}
-                  <input
-                    type="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="p-2 border rounded-md"
-                  />
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  {/* Tarih Seçici ve Rapor Butonu */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="month"
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="p-2 border rounded-md"
+                    />
+                    <button
+                      onClick={generateMonthlyReport}
+                      className="text-white px-4 py-2 rounded-md"
+                    >
+                      📝
+                    </button>
+                  </div>
 
-                  {/* Raporu Göster Butonu */}
-                  <button
-                    onClick={generateMonthlyReport}
-                    className="text-white px-4 py-2 rounded-md"
-                  >
-                    📝
-                  </button>
+                  {/* Direkt Arşive Ekle Butonu (En sağda ve ortalanmış) */}
+                  <CirclePlus
+                    className="w-8 h-8 cursor-pointer"
+                    onClick={() => setIsModalAddTodoDirectArchiveOpen(true)}
+                  />
+                  {/* Modal */}
+                  <AddTodoDirectArchiveModal
+                    todos={todosAll}
+                    isOpen={isModalAddTodoDirectArchiveOpen}
+                    onClose={() => {
+                      setIsModalAddTodoDirectArchiveOpen(false)
+                      setNewTodo("")
+                      setNewTodoCategory("")
+                      setNewTodoAmount("")
+                      setNewTodoUnit("")
+                      setNewTodoPrice("")
+                    }}
+                    addTodoDirectArchive={addTodoDirectArchive}
+                    newTodo={newTodo}
+                    setNewTodo={setNewTodo}
+                    newTodoAmount={newTodoAmount}
+                    setNewTodoAmount={setNewTodoAmount}
+                    newTodoPrice={newTodoPrice}
+                    setNewTodoPrice={setNewTodoPrice}
+                    newTodoUnit={newTodoUnit}
+                    setNewTodoUnit={setNewTodoUnit}
+                    setNewTodoCategory={setNewTodoCategory}
+                    newTodoCategory={newTodoCategory}
+                    inputRef={inputAddTodoRef}
+                    categories={categories}
+                    todoType={"archive"}
+                  />
                 </div>
 
                 {/* Rapor Modalı */}

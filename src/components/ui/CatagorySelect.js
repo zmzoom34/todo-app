@@ -6,6 +6,7 @@ const CategorySelect = ({ onValueChange, value, categories = [] }) => {
   const [filteredCategories, setFilteredCategories] = useState(categories);
   const [searchTerm, setSearchTerm] = useState("");
   const selectRef = useRef(null);
+  const searchInputRef = useRef(null); // Added ref for search input
 
   const selectedLabel = categories.find(cat => cat.value === value)?.label || "Kategori seçin";
 
@@ -19,6 +20,13 @@ const CategorySelect = ({ onValueChange, value, categories = [] }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Arama kutusuna odaklanma ve kategori filtreleme
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus(); // Focus the search input when dropdown opens
+    }
+  }, [isOpen]);
 
   // Arama kutusundaki değere göre kategori listesini filtreleme
   useEffect(() => {
@@ -58,6 +66,7 @@ const CategorySelect = ({ onValueChange, value, categories = [] }) => {
           <div className="flex items-center px-3 py-2 border-b">
             <Search className="w-4 h-4 text-gray-500 mr-2" />
             <input
+              ref={searchInputRef} // Added ref to input
               type="text"
               placeholder="Kategori ara..."
               value={searchTerm}

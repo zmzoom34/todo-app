@@ -6,7 +6,7 @@ import CategorySelect from "./ui/CatagorySelect";
 import { db } from "../firebase-config";
 import { collection, getDocs } from "firebase/firestore";
 
-const TodoInput = ({
+const TodoInputDirectArchive = ({
   todos,
   value,
   amount,
@@ -16,9 +16,11 @@ const TodoInput = ({
   onChangeUnit,
   onSubmit,
   inputRef,
-  placeholder = "Yeni görev ekle...",
+  placeholder = "Arşive ekle...",
   setNewTodoCategory,
   newTodoCategory,
+  newTodoPrice,
+  setNewTodoPrice,
   categories,
   newTodoDueDate,
   setNewTodoDueDate,
@@ -43,12 +45,11 @@ const TodoInput = ({
     fetchUnits();
   }, []);
 
-  // Dışarı tıklandığında öneri listesini kapat
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
         showSuggestions &&
-        inputRef.current &&
+        inputRef.current && 
         !inputRef.current.contains(event.target) &&
         suggestionsRef.current &&
         !suggestionsRef.current.contains(event.target)
@@ -57,10 +58,7 @@ const TodoInput = ({
       }
     };
 
-    // Event listener ekle
     document.addEventListener("mousedown", handleClickOutside);
-
-    // Temizlik
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -69,17 +67,27 @@ const TodoInput = ({
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (value.trim()) {
+      if (isFormValid()) {
         onSubmit(e);
-        setShowSuggestions(false); // Enter tuşuyla gönderildiğinde de kapat
+        setShowSuggestions(false);
       }
     }
   };
 
-  // Önerileri seçme işlevi
-  const handleSuggestionSelect = (selectedText) => {
+  const handleSuggestionSelect = (e, selectedText) => {
+    e.stopPropagation();
     onChange({ target: { value: selectedText } });
-    setShowSuggestions(false); // Öneri seçildiğinde listeyi kapat
+    setShowSuggestions(false);
+    
+    const outsideClickEvent = new Event('mousedown', {
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(outsideClickEvent);
+    
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   useEffect(() => {
@@ -93,7 +101,6 @@ const TodoInput = ({
       todo.text.toLowerCase().includes(value.toLowerCase())
     );
 
-    // 🔥 Eğer yeni filtrelenen liste öncekinden farklıysa state'i güncelle
     setFilteredTodos((prev) => {
       if (JSON.stringify(prev) !== JSON.stringify(filtered)) {
         return filtered;
@@ -102,7 +109,7 @@ const TodoInput = ({
     });
 
     setShowSuggestions(filtered.length > 0);
-  }, [value, todos]); // ✅ filteredTodos bağımlılık dizisinden çıkarıldı
+  }, [value, todos]);
 
   // Form validation function
   const isFormValid = () => {
@@ -112,7 +119,8 @@ const TodoInput = ({
       value.trim() !== "" &&
       newTodoCategory !== "" &&
       amount !== "" &&
-      unit !== ""
+      unit !== "" &&
+      newTodoPrice !== ""
     );
   };
 
@@ -130,7 +138,7 @@ const TodoInput = ({
         />
 
         {showSuggestions && (
-          <div
+          <div 
             ref={suggestionsRef}
             className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-lg shadow-md mt-2 z-10 max-h-40 overflow-y-auto"
           >
@@ -138,7 +146,7 @@ const TodoInput = ({
               <div
                 key={todo.id}
                 className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer"
-                onClick={() => handleSuggestionSelect(todo.text)}
+                onClick={(e) => handleSuggestionSelect(e, todo.text)}
               >
                 {todo.text}
               </div>
@@ -159,12 +167,12 @@ const TodoInput = ({
           value={amount}
           onChange={onChangeAmount}
           placeholder="Miktar"
-          className="w-1/2 border-2 border-gray-300 rounded-xl p-3"
+          className="border-2 border-gray-300 rounded-xl p-3"
         />
         <select
           value={unit}
           onChange={(e) => onChangeUnit && onChangeUnit(e.target.value)}
-          className="w-1/2 border-2 border-gray-300 rounded-xl p-3 bg-white text-gray-700"
+          className="border-2 border-gray-300 rounded-xl p-3 bg-white text-gray-700"
         >
           <option value="">Birim Seç</option>
           {unitOptions.map((option) => (
@@ -173,6 +181,14 @@ const TodoInput = ({
             </option>
           ))}
         </select>
+        <Input
+          type="number"
+          value={newTodoPrice}
+          onChange={(e) => {
+            setNewTodoPrice(e.target.value);
+          }}
+          placeholder="Fiyat (TL)"
+        />
       </div>
 
       {todoType === "personal" && (
@@ -192,12 +208,12 @@ const TodoInput = ({
         disabled={!isFormValid()}
         onClick={(e) => {
           e.preventDefault();
-          if (value.trim()) {
+          if (isFormValid()) {
             onSubmit(e);
-            setShowSuggestions(false); // Formun gönderilmesi durumunda da kapat
+            setShowSuggestions(false);
           }
         }}
-        className="bg-blue-500 text-white hover:bg-blue-600 transition-all rounded-xl p-3 flex items-center justify-center"
+        className="bg-blue-500 text-white hover:bg-blue-600 transition-all rounded-xl p-3 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
         <Plus className="w-5 h-5 mr-2" />
         Ekle
@@ -206,4 +222,4 @@ const TodoInput = ({
   );
 };
 
-export default TodoInput;
+export default TodoInputDirectArchive;

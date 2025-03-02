@@ -1,11 +1,28 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './custom-dialog-components';
-import { Input } from './input';
-import { Button } from './button';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./custom-dialog-components";
+import { Input } from "./input";
+import { Button } from "./button";
 
 const PriceInputModal = ({ isOpen, onClose, onConfirm, todoText }) => {
-  const [price, setPrice] = useState('');
-  const [error, setError] = useState('');
+  const [price, setPrice] = useState("");
+  const [store, setStore] = useState("");
+  const [brand, setBrand] = useState("");
+  const [error, setError] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
   const handleSubmit = () => {
     // Remove any leading/trailing whitespace
@@ -13,64 +30,90 @@ const PriceInputModal = ({ isOpen, onClose, onConfirm, todoText }) => {
 
     // Validate if empty
     if (!trimmedPrice) {
-      setError('Fiyat alanı boş bırakılamaz');
+      setError("Fiyat alanı boş bırakılamaz");
       return;
     }
 
     // Validate if it's a valid number (integer or decimal)
     const isValidNumber = /^\d*\.?\d+$/.test(trimmedPrice);
-    
+
     if (!isValidNumber) {
-      setError('Lütfen geçerli bir sayı giriniz (örn: 5 veya 5.5)');
+      setError("Lütfen geçerli bir sayı giriniz (örn: 5 veya 5.5)");
       return;
     }
 
     // Clear error and call onConfirm with the validated price
-    setError('');
-    onConfirm(parseFloat(trimmedPrice));
+    setError("");
+    onConfirm(parseFloat(trimmedPrice), store, brand);
+    setPrice("");
   };
 
   const handleClose = () => {
-    setPrice('');
-    setError('');
+    setPrice("");
+    setStore("");
+    setBrand("");
+    setError("");
     onClose();
   };
 
   // Check if price is empty or contains only whitespace
-  const isSubmitDisabled = !price.trim();
+  const isSubmitDisabled = !price.trim() || !store.trim() || !brand.trim();
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          handleClose();
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Arşivleme Fiyatı</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <p className="text-sm text-gray-600">
-            "{todoText}" görevi için fiyat giriniz
+            "{todoText}" görevi için fiyat, mağaza, marka giriniz
           </p>
           <Input
-            type="number"
-            value={price}
-            onChange={(e) => {
-              setPrice(e.target.value);
-              setError('');
-            }}
-            placeholder="Fiyat (TL)"
-            className={error ? 'border-red-500' : ''}
-          />
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+  ref={inputRef}
+  type="number"
+  value={price}
+  onChange={(e) => {
+    setPrice(e.target.value);
+    setError('');
+  }}
+  placeholder="Fiyat (TL)"
+  className={error ? 'border-red-500' : ''}
+/>
+<Input
+  type="text"
+  value={store}
+  onChange={(e) => {
+    setStore(e.target.value);
+    setError('');
+  }}
+  placeholder="Mağaza?"
+  className={error ? 'border-red-500' : ''}
+/>
+<Input
+  type="text"
+  value={brand}
+  onChange={(e) => {
+    setBrand(e.target.value);
+    setError('');
+  }}
+  placeholder="Marka?"
+  className={error ? 'border-red-500' : ''}
+/>
+          {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
             İptal
           </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={isSubmitDisabled}
-          >
+          <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
             Onayla
           </Button>
         </DialogFooter>
