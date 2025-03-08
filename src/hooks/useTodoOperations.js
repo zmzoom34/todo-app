@@ -86,8 +86,6 @@ export const useTodoOperations = (db, showToastMessage) => {
       const prizeUSD = (todo.prizeTL * exchangeRate).toFixed(2);
 
       todo.prizeUSD = prizeUSD
-
-      console.log(todo)
   
       await addDoc(collection(db, "todos"), todo);
   

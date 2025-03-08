@@ -18,7 +18,12 @@ const TodoList = ({
   setEditAmount,
   setEditUnit,
   editAmount,
-  categories
+  categories,
+  stores,
+  editTodo,
+  setEditTodo,
+  saveEditTodo,
+  units
 }) => {
   return (
     <div className="space-y-2">
@@ -43,6 +48,11 @@ const TodoList = ({
           setEditUnit={setEditUnit}
           editAmount={editAmount}
           categories={categories}
+          stores={stores}
+          editTodo={editTodo}
+          setEditTodo={setEditTodo}
+          saveEditTodo={saveEditTodo}
+          units={units}
         />
       ))}
     </div>

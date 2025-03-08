@@ -23,6 +23,11 @@ const TodoItem = ({
   setEditUnit,
   editAmount,
   categories,
+  stores,
+  editTodo,
+  setEditTodo,
+  saveEditTodo,
+  units
 }) => {
   //const { categories, loading } = useFetchCategories()
   return (
@@ -37,7 +42,7 @@ const TodoItem = ({
           onClick={() => toggleComplete(todo, nickName)}
           isArchived={todo.statue === "archive" ? true : false}
         />
-        <TodoContent todo={todo} />
+        <TodoContent todo={todo} stores={stores} units={units} />
       </div>
       {todo.category && (
         <div className="text-sm text-gray-700">
@@ -59,7 +64,10 @@ const TodoItem = ({
       )}
       <div className="ml-auto">
         <TodoActions
-          onEdit={() => startEditing(todo)}
+          onEdit={() => {
+            startEditing(todo)
+            setEditTodo(todo)
+          }}
           onDelete={() => handleDeleteClick(todo)}
           onArchive={() => handleArchiveClick(todo)}
           editingId={editingId}
@@ -73,13 +81,19 @@ const TodoItem = ({
         todo={todo}
         editText={editText}
         setEditText={setEditText}
-        onSave={saveEdit}
+        onSave={saveEditTodo}
         setEditCategory={setEditCategory}
         setEditAmount={setEditAmount}
         setEditUnit={setEditUnit}
         editAmount={editAmount}
         categories={categories}
         todos={todos}
+        stores={stores}
+        brand={todo.brand}
+        editTodo={editTodo}
+        setEditTodo={setEditTodo}
+        units={units}
+        activeTab={activeTab}
       />
     </div>
   );

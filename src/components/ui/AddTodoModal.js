@@ -18,9 +18,11 @@ const AddTodoModal = ({
   setNewTodoCategory,
   inputRef,
   categories,
+  stores,
   newTodoDueDate,
   setNewTodoDueDate,
-  todoType
+  todoType,
+  units
 }) => {
   if (!isOpen) return null;
   const uniqueTodos = todos.filter(
@@ -77,6 +79,7 @@ const AddTodoModal = ({
             newTodoDueDate={newTodoDueDate} // Yeni prop
             setNewTodoDueDate={setNewTodoDueDate} // Yeni prop
             todoType={todoType}
+            units={units}
           />
         </form>
       </div>

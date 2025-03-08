@@ -24,32 +24,23 @@ const TodoInputDirectArchive = ({
   categories,
   newTodoDueDate,
   setNewTodoDueDate,
+  newTodoBrand,
+  setNewTodoBrand,
+  newTodoStore,
+  setNewTodoStore,
   todoType,
+  stores = [], // Varsayılan değer olarak boş bir dizi atandı
+  units,
 }) => {
-  const [unitOptions, setUnitOptions] = useState([]);
   const [filteredTodos, setFilteredTodos] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef(null);
 
   useEffect(() => {
-    const fetchUnits = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "units"));
-        const units = querySnapshot.docs.map((doc) => doc.data().name);
-        setUnitOptions(units);
-      } catch (error) {
-        console.error("Birimler alınırken hata oluştu:", error);
-      }
-    };
-
-    fetchUnits();
-  }, []);
-
-  useEffect(() => {
     const handleClickOutside = (event) => {
       if (
         showSuggestions &&
-        inputRef.current && 
+        inputRef.current &&
         !inputRef.current.contains(event.target) &&
         suggestionsRef.current &&
         !suggestionsRef.current.contains(event.target)
@@ -78,13 +69,13 @@ const TodoInputDirectArchive = ({
     e.stopPropagation();
     onChange({ target: { value: selectedText } });
     setShowSuggestions(false);
-    
-    const outsideClickEvent = new Event('mousedown', {
+
+    const outsideClickEvent = new Event("mousedown", {
       bubbles: true,
       cancelable: true,
     });
     document.dispatchEvent(outsideClickEvent);
-    
+
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -113,14 +104,14 @@ const TodoInputDirectArchive = ({
 
   // Form validation function
   const isFormValid = () => {
-    // Required fields: value, newTodoCategory, amount, unit
-    // newTodoPrice and newTodoDueDate can be optional depending on your needs
+    // Required fields: value, newTodoCategory, amount, unit, selectedStore
     return (
       value.trim() !== "" &&
       newTodoCategory !== "" &&
       amount !== "" &&
       unit !== "" &&
-      newTodoPrice !== ""
+      newTodoPrice !== "" &&
+      newTodoStore !== "" // Mağaza seçimi zorunlu
     );
   };
 
@@ -138,7 +129,7 @@ const TodoInputDirectArchive = ({
         />
 
         {showSuggestions && (
-          <div 
+          <div
             ref={suggestionsRef}
             className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-lg shadow-md mt-2 z-10 max-h-40 overflow-y-auto"
           >
@@ -175,9 +166,9 @@ const TodoInputDirectArchive = ({
           className="border-2 border-gray-300 rounded-xl p-3 bg-white text-gray-700"
         >
           <option value="">Birim Seç</option>
-          {unitOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
+          {units.map((data) => (
+            <option key={data.value} value={data.value}>
+              {data.label}
             </option>
           ))}
         </select>
@@ -188,6 +179,30 @@ const TodoInputDirectArchive = ({
             setNewTodoPrice(e.target.value);
           }}
           placeholder="Fiyat (TL)"
+        />
+      </div>
+
+      {/* Mağaza Seçimi */}
+      <div className="flex gap-2">
+        <select
+          value={newTodoStore}
+          onChange={(e) => setNewTodoStore(e.target.value)}
+          className="border-2 border-gray-300 rounded-xl p-3 bg-white text-gray-700 w-full"
+        >
+          <option value="">Mağaza Seçiniz</option>
+          {stores.map((store) => (
+            <option key={store.value} value={store.value}>
+              {store.label}
+            </option>
+          ))}
+        </select>
+        <Input
+          type="text"
+          value={newTodoBrand}
+          onChange={(e) => {
+            setNewTodoBrand(e.target.value);
+          }}
+          placeholder="Marka?"
         />
       </div>
 

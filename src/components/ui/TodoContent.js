@@ -1,11 +1,16 @@
 import React, { useState } from "react";
-import { ThumbsUp, Pen, Settings, Clock, X } from "lucide-react";
+import { ThumbsUp, Pen, Settings, Clock, X, Store, Hexagon } from "lucide-react";
 import TimelineItem from "./TimelineItem";
 
-const TodoContent = ({ todo }) => {
+const TodoContent = ({ todo, stores, units }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
+
+  const findStoreName = (value) => {
+    const item = stores.find((item) => item.value === value);
+    return item ? item.label : null;
+  };
 
   return (
     <div className="flex-grow min-w-0 w-full sm:w-auto">
@@ -17,7 +22,10 @@ const TodoContent = ({ todo }) => {
         >
           {todo.text}
           <span className="text-xs text-gray-600 ml-3"> {todo.amount}</span>
-          <span className="text-xs text-gray-600"> {todo.unit}</span>
+          <span className="text-xs text-gray-600 ml-1">
+            {units.find((unit) => unit.value === todo.unit)?.label ||
+            todo.unit + " birim hata"}
+            </span>
         </p>
 
         <button
@@ -34,7 +42,7 @@ const TodoContent = ({ todo }) => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md m-4">
             {/* Modal Header */}
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Timeline History</h2>
+              <h2 className="text-lg font-semibold">Ayrıntılar</h2>
               <button
                 onClick={closeModal}
                 className="p-1 hover:bg-gray-100 rounded-full"
@@ -74,9 +82,27 @@ const TodoContent = ({ todo }) => {
                 </p>
               )} */}
               {todo.prizeTL && (
-                <p className="text-xs text-gray-600">
-                  {todo.prizeTL} TL === {todo.prizeUSD} ${" "}
-                </p>
+                <div>
+                  <p className="text-xs text-gray-600">
+                    {todo.prizeTL} TL === {todo.prizeUSD} ${" "}
+                  </p>
+                </div>
+              )}
+              {todo.store && (
+                <div>
+                  <p className="text-xs text-gray-600 flex items-center">
+                    <Store className="w-3 h-3 text-gray-600 flex-shrink-0 mr-1" />
+                    {findStoreName(todo.store)}
+                  </p>
+                </div>
+              )}
+              {todo.brand && (
+                <div>
+                  <p className="text-xs text-gray-600 flex items-center">
+                    <Hexagon className="w-3 h-3 text-gray-600 flex-shrink-0 mr-1" />
+                    {todo.brand}
+                  </p>
+                </div>
               )}
             </div>
           </div>

@@ -4,8 +4,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import CategorySelect from "../ui/CatagorySelect";
 import { Camera, X } from "lucide-react";
-import BarcodeScanner from "../BarcodeScanner";
-import NotificationSound from "../sounds/beep-07a.mp3";
+import { Html5QrcodeScanner, Html5QrcodeScanType } from "html5-qrcode";
 
 const TodoEditModal = ({
   isOpen,
@@ -19,49 +18,35 @@ const TodoEditModal = ({
   units,
   activeTab,
 }) => {
+  // Single state object to manage all todo fields
   const [todoData, setTodoData] = useState({
-    id: "",
-    text: "",
-    category: "",
-    amount: "",
-    prizeTL: "",
-    prizeUSD: "",
-    brand: "",
-    store: "",
-    unit: "",
-    groupId: "",
-    userId: "",
-    createdAt: "",
-    updatedAt: "",
-    archivedAt: "",
-    completed: false,
-    completedBy: "",
-    archivedBy: "",
-    createdBy: "",
-    statue: "",
-    barcode: "",
+    id: todo?.id || "",
+    text: todo?.text || "",
+    category: todo?.category || "",
+    amount: todo?.amount || "",
+    prizeTL: todo?.prizeTL || "",
+    prizeUSD: todo?.prizeUSD || "",
+    brand: todo?.brand || "",
+    store: todo?.store || "",
+    unit: todo?.unit || "",
+    groupId: todo?.groupId || "",
+    userId: todo?.userId || "",
+    createdAt: todo?.createdAt || "",
+    updatedAt: todo?.updatedAt || "",
+    archivedAt: todo?.archivedAt || "",
+    completed: todo?.completed || false,
+    completedBy: todo?.completedBy || "",
+    archivedBy: todo?.archivedBy || "",
+    createdBy: todo?.createdBy || "",
+    statue: todo?.statue || "",
+    barcode: todo?.barcode || "",
   });
 
   const [isScanning, setIsScanning] = useState(false);
   const [scannerError, setScannerError] = useState(null);
-  const audioPlayer = useRef(null);
-  const [scanResult, setScanResult] = useState(null);
+  const scannerRef = useRef(null);
 
-  // Ses çalma fonksiyonu
-  const playAudio = () => {
-    if (audioPlayer.current) {
-      audioPlayer.current.play()
-        .then(() => {
-          console.log("Ses başarıyla çalındı");
-        })
-        .catch((error) => {
-          console.error("Ses çalma hatası:", error);
-        });
-    } else {
-      console.error("Audio elementi bulunamadı");
-    }
-  };
-
+  // Update todoData when the `todo` prop changes
   useEffect(() => {
     if (todo) {
       setTodoData({
@@ -89,13 +74,14 @@ const TodoEditModal = ({
     }
   }, [todo]);
 
+  // Initialize barcode scanner when isScanning is true
   useEffect(() => {
     if (isScanning) {
-      console.log("Scanning started");
-    } else {
-      console.log("Scanning stopped");
+      startScanner();
     }
-  }, [isScanning]);
+
+    // Remove the cleanup from here and handle it differently
+  }, [isScanning]); // Only depend on isScanning
 
   const handleInputChange = (field, value) => {
     setTodoData((prevData) => ({
@@ -104,39 +90,118 @@ const TodoEditModal = ({
     }));
   };
 
-  const handleScanSuccess = (decodedText) => {
-    setScanResult(decodedText);
-    setTodoData((prev) => ({
-      ...prev,
-      barcode: decodedText,
-    }));
-    toggleScanner();
-    playAudio(); // Ses burada çalınıyor
-    console.log(`Scan result: ${decodedText}`);
-  };
-
-  const handleScanError = (error) => {
-    setScannerError(`Scanner error: ${error.message || "Unknown error"}`);
-    console.error(error);
-  };
-
   const handleSaveTodo = (e) => {
     e.preventDefault();
-    onSave(todoData);
-    onClose();
+    onSave(todoData); // Pass the updated todoData to the parent
+    onClose(); // Close the modal
   };
 
-  const toggleScanner = () => {
-    setIsScanning((prev) => !prev);
-    if (isScanning) {
-      setScanResult(null);
+  const startScanner = () => {
+    console.log("Starting scanner...");
+    setScannerError(null);
+
+    const scannerContainer = document.getElementById("scanner-container");
+    if (!scannerContainer) {
+      setScannerError("Scanner container not found");
+      setIsScanning(false);
+      return;
+    }
+
+    try {
+      scannerContainer.innerHTML = "";
+
+      const scanner = new Html5QrcodeScanner(
+        "scanner-container",
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          supportedScanTypes: [0],
+          showTorchButtonIfSupported: true,
+          showZoomSliderIfSupported: true,
+          facingMode: "environment",
+          disableFlip: false,
+        },
+        false
+      );
+
+      scannerRef.current = scanner;
+
+      scanner.render(
+        (decodedText) => {
+          console.log("QR code scanned successfully:", decodedText);
+          handleInputChange("barcode", decodedText);
+          setIsScanning(false); // Stop scanning after success
+          stopScanner();
+        },
+        (error) => {
+          // Safely handle the error
+          const errorMessage = error?.message || "Unknown error occurred";
+          console.warn("Scan error:", errorMessage);
+
+          // Ignore "no QR code found" errors (common during scanning)
+          if (
+            errorMessage.includes(
+              "No MultiFormat Readers were able to detect"
+            ) ||
+            errorMessage.includes("No QR code found")
+          ) {
+            // Do nothing - this is expected during continuous scanning
+          } else {
+            setScannerError("Scanning error: " + errorMessage);
+          }
+        }
+      );
+
+      // Check camera permissions
+      navigator.mediaDevices.getUserMedia({ video: true }).catch((err) => {
+        console.error("Camera permission error:", err);
+        setScannerError("Camera access denied: " + err.message);
+        setIsScanning(false);
+      });
+    } catch (error) {
+      console.error("Scanner initialization failed:", error);
+      setScannerError(
+        "Failed to start scanner: " + (error.message || "Unknown error")
+      );
+      setIsScanning(false);
     }
   };
 
-  const handleClose = () => {
-    setScanResult(null);
-    setIsScanning(false);
-    onClose();
+  // Add separate cleanup useEffect
+  useEffect(() => {
+    return () => {
+      // Cleanup function that runs when component unmounts or isScanning changes
+      if (!isScanning && scannerRef.current) {
+        stopScanner();
+      }
+    };
+  }, [isScanning]); // Depend on isScanning
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try {
+        const scanner = scannerRef.current.html5Qrcode;
+        if (scanner && scanner.isScanning) {
+          await scanner.stop(); // Kamerayı durdur
+          console.log("Scanner stopped successfully");
+        }
+        scannerRef.current.clear(); // UI temizleme
+        scannerRef.current = null;
+      } catch (error) {
+        console.error("Error stopping scanner:", error);
+        setScannerError("Error stopping scanner: " + error.message);
+      }
+    }
+    setScannerError(null);
+  };
+
+  const toggleScanner = () => {
+    if (isScanning) {
+      stopScanner(); // Kamerayı kapat
+      setIsScanning(false);
+    } else {
+      setIsScanning(true);
+    }
   };
 
   if (!isOpen) return null;
@@ -144,7 +209,7 @@ const TodoEditModal = ({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-      onClick={handleClose}
+      onClick={onClose}
     >
       <div
         className="bg-white rounded-lg p-8 w-full max-w-lg relative overflow-y-auto max-h-screen"
@@ -152,21 +217,20 @@ const TodoEditModal = ({
       >
         <button
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
-          onClick={handleClose}
-          aria-label="Close"
+          onClick={onClose}
         >
-          <X size={20} />
+          ✕
         </button>
 
         <h2 className="text-xl font-bold mb-4">Görevi Düzenle</h2>
 
         <form onSubmit={handleSaveTodo} className="space-y-4">
+          {/* Görev Detayı */}
           <div>
-            <label htmlFor="taskDetail" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Görev Detayı
             </label>
             <Input
-              id="taskDetail"
               type="text"
               value={editText}
               onChange={(e) => {
@@ -178,7 +242,8 @@ const TodoEditModal = ({
             />
           </div>
 
-          <div className="w-full">
+          {/* Kategori Seçimi */}
+          <div className="w-full max-w-xs">
             <CategorySelect
               value={todoData.category}
               onValueChange={(value) => handleInputChange("category", value)}
@@ -186,78 +251,70 @@ const TodoEditModal = ({
             />
           </div>
 
+          {/* Miktar ve Birim */}
           <div className="flex gap-2">
-            <div className="w-1/2">
-              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
-                Miktar
-              </label>
-              <Input
-                id="amount"
-                type="text"
-                value={todoData.amount}
-                onChange={(e) => handleInputChange("amount", e.target.value)}
-                placeholder="Miktar"
-                className="w-full"
-              />
-            </div>
-            <div className="w-1/2">
-              <label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-2">
-                Birim
-              </label>
-              <select
-                id="unit"
-                value={todoData.unit}
-                onChange={(e) => handleInputChange("unit", e.target.value)}
-                className="w-full border rounded-lg p-2 bg-white text-gray-700"
-              >
-                <option value="">Birim Seç</option>
-                {units.map((unit, index) => (
-                  <option key={index} value={unit.value}>
-                    {unit.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Input
+              type="text"
+              value={todoData.amount}
+              onChange={(e) => handleInputChange("amount", e.target.value)}
+              placeholder="Miktar"
+              className="w-1/2"
+            />
+            <select
+              value={todoData.unit}
+              onChange={(e) => handleInputChange("unit", e.target.value)}
+              className="w-1/2 border rounded-lg p-2 bg-white text-gray-700"
+            >
+              <option value="">Birim Seç</option>
+              {units.map((unit, index) => (
+                <option key={index} value={unit.value}>
+                  {unit.label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {activeTab === "archive" && (
-            <div className="space-y-4">
+          {/* Durum Alanı */}
+          {activeTab === "archive" ? (
+            <div>
+              {/* Fiyat Alanları */}
               <div className="flex gap-2">
                 <div className="w-1/2">
-                  <label htmlFor="prizeTL" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Fiyat (TL)
                   </label>
                   <Input
-                    id="prizeTL"
                     type="number"
                     value={todoData.prizeTL}
-                    onChange={(e) => handleInputChange("prizeTL", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("prizeTL", e.target.value)
+                    }
                     placeholder="Fiyat (TL)"
                     className="w-full"
                   />
                 </div>
                 <div className="w-1/2">
-                  <label htmlFor="prizeUSD" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Fiyat (USD)
                   </label>
                   <Input
-                    id="prizeUSD"
                     type="number"
                     value={todoData.prizeUSD}
-                    onChange={(e) => handleInputChange("prizeUSD", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("prizeUSD", e.target.value)
+                    }
                     placeholder="Fiyat (USD)"
                     className="w-full"
                   />
                 </div>
               </div>
-
+              {/* Marka ve Mağaza Alanları */}
               <div className="flex gap-2">
                 <div className="w-1/2">
-                  <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Marka
                   </label>
                   <Input
-                    id="brand"
                     type="text"
                     value={todoData.brand}
                     onChange={(e) => handleInputChange("brand", e.target.value)}
@@ -266,11 +323,10 @@ const TodoEditModal = ({
                   />
                 </div>
                 <div className="w-1/2">
-                  <label htmlFor="store" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Mağaza
                   </label>
                   <select
-                    id="store"
                     value={todoData.store}
                     onChange={(e) => handleInputChange("store", e.target.value)}
                     className="w-full border rounded-lg p-2 bg-white text-gray-700"
@@ -284,13 +340,11 @@ const TodoEditModal = ({
                   </select>
                 </div>
               </div>
-
               <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Durum
                 </label>
                 <select
-                  id="status"
                   value={todoData.statue}
                   onChange={(e) => handleInputChange("statue", e.target.value)}
                   className="w-full border rounded-lg p-2 bg-white text-gray-700"
@@ -300,54 +354,46 @@ const TodoEditModal = ({
                   <option value="active">Aktif</option>
                 </select>
               </div>
-
+              {/* Barcode / QR Code Section */}
               <div>
-                <label htmlFor="barcode" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Barcode / QR Code
                 </label>
                 <div className="flex gap-2">
                   <Input
-                    id="barcode"
                     type="text"
                     value={todoData.barcode}
-                    onChange={(e) => handleInputChange("barcode", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("barcode", e.target.value)
+                    }
                     placeholder="Barcode number"
                     className="w-full"
-                    disabled={isScanning}
+                    disabled={isScanning} // Disable input while scanning
                   />
                   <Button
                     type="button"
                     onClick={toggleScanner}
                     variant="outline"
                     className="flex items-center gap-1"
-                    disabled={!navigator?.mediaDevices}
-                    aria-label={isScanning ? "Close Scanner" : "Open Scanner"}
+                    disabled={!navigator.mediaDevices} // Disable if no camera support
                   >
                     {isScanning ? <X size={16} /> : <Camera size={16} />}
                     {isScanning ? "Close" : "Scan"}
                   </Button>
                 </div>
 
+                {/* Scanner Display */}
                 {isScanning && (
                   <div className="mt-4">
                     <div
+                      id="scanner-container"
                       className="border rounded overflow-hidden mx-auto"
                       style={{
+                        height: "300px",
                         width: "100%",
                         maxWidth: "400px",
                       }}
-                    >
-                      <BarcodeScanner
-                        onScanSuccess={handleScanSuccess}
-                        onScanError={handleScanError}
-                      />
-                      <audio ref={audioPlayer} src={NotificationSound} preload="auto" />
-                      {scanResult && (
-                        <div className="p-2 bg-green-100 text-green-800 text-center mt-2">
-                          Scanned: {scanResult}
-                        </div>
-                      )}
-                    </div>
+                    ></div>
                     {scannerError && (
                       <div className="text-red-500 text-sm mt-2 text-center">
                         {scannerError}
@@ -357,10 +403,18 @@ const TodoEditModal = ({
                 )}
               </div>
             </div>
-          )}
+          ) : null}
 
+          {/* Butonlar */}
           <div className="flex justify-end gap-2 mt-6">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                onClose(); // Fonksiyon çağırılmalı
+                stopScanner();
+              }}
+            >
               İptal
             </Button>
             <Button type="submit">Kaydet</Button>
@@ -371,6 +425,7 @@ const TodoEditModal = ({
   );
 };
 
+// Prop validation
 TodoEditModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,

@@ -9,12 +9,17 @@ import {
 import { Input } from "./input";
 import { Button } from "./button";
 
-const PriceInputModal = ({ isOpen, onClose, onConfirm, todoText }) => {
+const PriceInputModal = ({ isOpen, onClose, onConfirm, todoText, stores }) => {
   const [price, setPrice] = useState("");
   const [store, setStore] = useState("");
   const [brand, setBrand] = useState("");
   const [error, setError] = useState("");
   const inputRef = useRef(null);
+
+  // Alfabetik sıralama
+  const sortedStores = [...stores].sort((a, b) =>
+    a.label.localeCompare(b.label)
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -77,36 +82,43 @@ const PriceInputModal = ({ isOpen, onClose, onConfirm, todoText }) => {
             "{todoText}" görevi için fiyat, mağaza, marka giriniz
           </p>
           <Input
-  ref={inputRef}
-  type="number"
-  value={price}
-  onChange={(e) => {
-    setPrice(e.target.value);
-    setError('');
-  }}
-  placeholder="Fiyat (TL)"
-  className={error ? 'border-red-500' : ''}
-/>
-<Input
-  type="text"
-  value={store}
-  onChange={(e) => {
-    setStore(e.target.value);
-    setError('');
-  }}
-  placeholder="Mağaza?"
-  className={error ? 'border-red-500' : ''}
-/>
-<Input
-  type="text"
-  value={brand}
-  onChange={(e) => {
-    setBrand(e.target.value);
-    setError('');
-  }}
-  placeholder="Marka?"
-  className={error ? 'border-red-500' : ''}
-/>
+            ref={inputRef}
+            type="number"
+            value={price}
+            onChange={(e) => {
+              setPrice(e.target.value);
+              setError("");
+            }}
+            placeholder="Fiyat (TL)"
+            className={error ? "border-red-500" : ""}
+          />
+          <select
+            value={store}
+            onChange={(e) => {
+              setStore(e.target.value);
+              setError("");
+            }}
+            className={`w-full p-2 border rounded ${
+              error ? "border-red-500" : "border-gray-300"
+            }`}
+          >
+            <option value="">Mağaza seçiniz</option>
+            {sortedStores.map((store) => (
+              <option key={store.value} value={store.value}>
+                {store.label}
+              </option>
+            ))}
+          </select>
+          <Input
+            type="text"
+            value={brand}
+            onChange={(e) => {
+              setBrand(e.target.value);
+              setError("");
+            }}
+            placeholder="Marka?"
+            className={error ? "border-red-500" : ""}
+          />
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>

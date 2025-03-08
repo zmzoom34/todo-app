@@ -23,25 +23,11 @@ const TodoInput = ({
   newTodoDueDate,
   setNewTodoDueDate,
   todoType,
+  units
 }) => {
-  const [unitOptions, setUnitOptions] = useState([]);
   const [filteredTodos, setFilteredTodos] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef(null);
-
-  useEffect(() => {
-    const fetchUnits = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "units"));
-        const units = querySnapshot.docs.map((doc) => doc.data().name);
-        setUnitOptions(units);
-      } catch (error) {
-        console.error("Birimler alınırken hata oluştu:", error);
-      }
-    };
-
-    fetchUnits();
-  }, []);
 
   // Dışarı tıklandığında öneri listesini kapat
   useEffect(() => {
@@ -167,9 +153,9 @@ const TodoInput = ({
           className="w-1/2 border-2 border-gray-300 rounded-xl p-3 bg-white text-gray-700"
         >
           <option value="">Birim Seç</option>
-          {unitOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
+          {units.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>

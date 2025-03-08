@@ -13,8 +13,15 @@ import {
   Bell,
   Plus,
   CirclePlus,
+  Store,
+  List,
+  Edit,
+  Trash,
+  Save,
+  CircleX,
+  ListTodo,
 } from "lucide-react";
-import { LuCirclePlus } from "react-icons/lu";
+import CancelIcon from "@mui/icons-material/Cancel";
 import {
   Card,
   CardContent,
@@ -27,6 +34,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
 import CategoryModal from "./CategoryModal";
 import UnitModal from "./UnitModal";
 import AddTodoModal from "./ui/AddTodoModal";
+import AddListTodoModal from "./ui/AddListTodoModal";
+import AddListTodoAdvancedModal from "./ui/AddListTodoAdvancedModal";
 import AddTodoDirectArchiveModal from "./ui/AddTodoDirectArchiveModal";
 import {
   collection,
@@ -36,6 +45,9 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
+  query,
+  orderBy,
   //setDoc,
 } from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
@@ -54,22 +66,35 @@ import { useArchivedTodos } from "../hooks/useArchivedTodos";
 import { useGroupCreation } from "../hooks/useGroupCreation";
 import { useToast } from "../hooks/useToast";
 import { useTodoOperations } from "../hooks/useTodoOperations";
+import useFetchUserLists from "../hooks/useFetchUserLists";
+import useFetchGroupLists from "../hooks/useFetchGroupLists";
+import useFetchGroupListsAdvanced from "../hooks/useFetchGroupListsAdvanced";
 import useUserData from "../hooks/useUserData";
 import useFetchCategories from "../hooks/useFetchCategories";
+import useFetchStores from "../hooks/useFetchStores";
 import ReportModal from "../components/ReportModal"; // Rapor modal bileşeni
 import Notification from "./Notification";
 import PriceInputModal from "./ui/PriceInputModal";
 import { requestNotificationPermission } from "../firebase-config";
+import BackupCollectionToJson from "./ui/BackupCollectionToJson";
+import StoreModal from "./StoreModal";
+import useFetchUnits from "../hooks/useFetchUnits";
+import ExpandableListAll from "./ui/ExpandableListAll";
+import ListsWithReports from "./ui/ListsWithReport";
+import Tooltip from "./ui/Tooltip";
 //import ReportModal from "../../public/"; // Rapor modal bileşeni
 
 const TodoApp = () => {
   const auth = getAuth();
   const [user, setUser] = useState(null);
   const [newTodo, setNewTodo] = useState("");
+  const [editTodo, setEditTodo] = useState(null);
   const [newTodoCategory, setNewTodoCategory] = useState("");
   const [newTodoAmount, setNewTodoAmount] = useState("");
   const [newTodoUnit, setNewTodoUnit] = useState("");
   const [newTodoPrice, setNewTodoPrice] = useState("");
+  const [newTodoBrand, setNewTodoBrand] = useState("");
+  const [newTodoStore, setNewTodoStore] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
   const [editCategory, setEditCategory] = useState("");
@@ -84,12 +109,18 @@ const TodoApp = () => {
   const [selectedTodo, setSelectedTodo] = useState(null);
   const [selectedTodoArchive, setSelectedTodoArchive] = useState(null);
   const [isModalAddTodoOpen, setIsModalAddTodoOpen] = useState(false);
-  const [isModalAddTodoDirectArchiveOpen, setIsModalAddTodoDirectArchiveOpen] = useState(false);
+  const [isModalAddListTodoOpen, setIsModalAddListTodoOpen] = useState(false);
+  const [isModalAddListTodoAdvancedOpen, setIsModalAddListTodoAdvancedOpen] =
+    useState(false);
+  const [isModalAddTodoDirectArchiveOpen, setIsModalAddTodoDirectArchiveOpen] =
+    useState(false);
   const [isModalCategoriesOpen, setIsModalCategoriesOpen] = useState(false);
   const [isModalUnitsOpen, setIsModalUnitsOpen] = useState(false);
+  const [isModalStoresOpen, setIsModalStoresOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [newTodoDueDate, setNewTodoDueDate] = useState("");
+  const [expandedListId, setExpandedListId] = useState(null);
 
   // const resendApiKey = process.env.REACT_APP_RESEND_API_KEY;
   // console.log(resendApiKey)
@@ -124,16 +155,57 @@ const TodoApp = () => {
     showToastMessage
   );
 
-  const { deleteTodo, toggleComplete, archiveTodo, archiveTodoDirect } = useTodoOperations(
-    db,
-    showToastMessage
-  );
+  const { deleteTodo, toggleComplete, archiveTodo, archiveTodoDirect } =
+    useTodoOperations(db, showToastMessage);
 
   const { todosAll } = useUserData(user);
 
   const { categories } = useFetchCategories();
+  const { stores } = useFetchStores();
+  const { units } = useFetchUnits();
+  const { userLists, loadingUserList } = useFetchUserLists(db, user);
+  const { groupLists, loadingGroupList } = useFetchGroupLists(
+    db,
+    selectedGroupId
+  );
+  const { groupListsAdvanced, loadingGroupListAdvanced } = useFetchGroupListsAdvanced(
+    db,
+    selectedGroupId
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+
+  const todoParameters = [
+    {
+      id: "title",
+      label: "Başlık",
+      type: "text",
+      required: true,
+      placeholder: "Yapılacak görevin başlığını girin",
+    },
+    {
+      id: "description",
+      label: "Açıklama",
+      type: "textarea",
+      placeholder: "Detaylı açıklama",
+      rows: 3,
+    },
+    {
+      id: "priority",
+      label: "Öncelik",
+      type: "select",
+      options: [
+        { value: "low", label: "Düşük" },
+        { value: "medium", label: "Orta" },
+        { value: "high", label: "Yüksek" },
+      ],
+    },
+    {
+      id: "dueDate",
+      label: "Bitiş Tarihi",
+      type: "date",
+    },
+  ];
 
   // Request notification permission on component mount
   // useEffect(() => {
@@ -344,7 +416,7 @@ const TodoApp = () => {
   };
 
   const addTodoDirectArchive = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!newTodo.trim()) return;
 
@@ -384,6 +456,8 @@ const TodoApp = () => {
         amount: newTodoAmount,
         unit: newTodoUnit,
         category: newTodoCategory,
+        store: newTodoStore,
+        brand: newTodoBrand,
       };
 
       if (activeTab === "archive") {
@@ -399,18 +473,61 @@ const TodoApp = () => {
         nickName,
         setIsModalAddTodoDirectArchiveOpen,
         activeTab
-      )
+      );
 
       setIsPriceModalOpen(false);
       setIsModalOpenArchive(false);
       setSelectedTodoArchive(null);
 
       setNewTodo("");
-
     } catch (error) {
       console.error("Error adding todo:", error);
       showToastMessage("Todo eklenirken bir hata oluştu. :)", "warning");
     }
+  };
+
+  const addListTodo = async (e) => {
+    console.log(activeTab); // Log the input value
+
+    if (!e.trim()) {
+      console.log("Empty list name, aborting");
+      return;
+    }
+
+    try {
+      // Authentication check
+      if (!user || !user.uid) {
+        throw new Error("User not authenticated");
+      }
+
+      // Determine the parent collection and ID based on activeTab
+      const parentCollection = activeTab === "personal" ? "users" : "groups"; // Fixed "group" to "groups"
+      const parentId = activeTab === "personal" ? user.uid : selectedGroupId;
+
+      // Create a reference to the parent document (user or group)
+      const parentDocRef = doc(db, parentCollection, parentId);
+
+      // Create a reference to the 'lists' subcollection
+      const listsCollectionRef = collection(parentDocRef, "lists");
+
+      // Prepare the data to be saved
+      const listData = {
+        listName: e,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Add the document to Firestore
+      const docRef = await addDoc(listsCollectionRef, listData);
+
+      console.log("List successfully added with ID:", docRef.id);
+    } catch (error) {
+      console.error("Error adding list:", error);
+    }
+  };
+
+  const addListTodoAdvanced = (todoData) => {
+    console.log("Kaydedilen todo:", todoData);
+    // Burada veritabanına kaydetme işlemleri yapılabilir
   };
 
   // Modify the addTodo function to include notification
@@ -468,7 +585,7 @@ const TodoApp = () => {
       await addDoc(collection(db, "todos"), todoData);
 
       // Send notification for new todo
-      //sendNotification(newTodo, nickName);
+      //sendNotification(newTodo, nickName)i;
 
       if (activeTab === "group") {
         sendGroupEmail(selectedGroupId, newTodo, nickName);
@@ -549,18 +666,48 @@ const TodoApp = () => {
     }
   };
 
+  const saveEditTodo = async (todo) => {
+    // Check if the todo has an id and text
+    if (!todo.id) {
+      console.error("Todo ID is missing");
+      showToastMessage("Todo ID eksik", "error");
+      return;
+    }
+
+    if (!todo.text || !todo.text.trim()) {
+      showToastMessage("Görev detayı boş olamaz", "error");
+      return;
+    }
+
+    try {
+      // Update document with sanitized fields
+      await updateDoc(doc(db, "todos", todo.id), todo);
+
+      // State'leri temizle
+      setEditTodo(null);
+
+      showToastMessage("Görev başarıyla güncellendi", "success");
+    } catch (error) {
+      console.error("Error updating todo:", error);
+      showToastMessage(
+        "Todo güncellenirken bir hata oluştu: " + error.message,
+        "error"
+      );
+    }
+  };
+
   const handleDeleteClick = (todo) => {
     setSelectedTodo(todo);
     setIsModalOpen(true);
   };
 
   const handleArchiveClick = (todo) => {
-    console.log(todo.completed)
-    if(todo.completed) {
+    console.log(todo.completed);
+    if (todo.completed) {
       setSelectedTodoArchive(todo);
       setIsModalOpenArchive(true);
     } else {
-      showToastMessage("Tamamlanmamış görevler arşivlenemez", "warning")
+      showToastMessage("Tamamlanmamış görevler arşivlenemez", "warning");
     }
   };
 
@@ -571,29 +718,6 @@ const TodoApp = () => {
     setIsModalOpen(false);
     setSelectedTodo(null);
   };
-
-  // const handleConfirmArchive = async () => {
-  //   if (selectedTodoArchive) {
-  //     if (!selectedTodoArchive.completed) {
-  //       showToastMessage("Tamamlanmamış görev arşivlenemez", "warning");
-  //       return false;
-  //     }
-  //     const prizeTL = prompt("Lütfen fiyatı TL olarak girin:");
-
-  //     if (!prizeTL || isNaN(prizeTL)) {
-  //       showToastMessage("Geçerli bir TL değeri giriniz.", "warning");
-  //       return;
-  //     }
-
-  //     await archiveTodo(
-  //       selectedTodoArchive,
-  //       nickName,
-  //       setIsModalOpenArchive,
-  //       parseFloat(prizeTL)
-  //     );
-  //     setIsModalOpenArchive(false);
-  //   }
-  // };
 
   const handleConfirmArchive = async () => {
     if (selectedTodoArchive) {
@@ -710,6 +834,25 @@ const TodoApp = () => {
       });
   };
 
+  const handleDeleteList = async (listId) => {
+    try {
+      if (!user) {
+        console.error("User not authenticated");
+        return;
+      }
+
+      // Reference to the specific list document
+      const listDocRef = doc(db, "users", user.uid, "lists", listId);
+
+      // Delete the document
+      await deleteDoc(listDocRef);
+
+      console.log("List deleted successfully");
+    } catch (error) {
+      console.error("Error deleting list:", error);
+    }
+  };
+
   if (!user) {
     return <AuthComponent onAuthSuccess={setUser} />;
   }
@@ -755,6 +898,13 @@ const TodoApp = () => {
           <DropdownMenuItem onClick={() => setIsModalUnitsOpen(true)}>
             <Ruler className="w-4 h-4 mr-2" />
             Birimler
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setIsModalStoresOpen(true)}>
+            <Store className="w-4 h-4 mr-2" />
+            Mağazalar
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <BackupCollectionToJson collectionName={"todos"} />
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -814,10 +964,28 @@ const TodoApp = () => {
           <TabsContent value="personal">
             <div>
               {/* Modal Açma Butonu */}
-              <CirclePlus
-                onClick={() => setIsModalAddTodoOpen(true)}
-                className="h-8 w-8 cursor-pointer mb-2"
-              />
+              <div className="flex  justify-between">
+                <Tooltip text={"Todo ekle"} position={"top"}>
+                  <CirclePlus
+                    onClick={() => setIsModalAddTodoOpen(true)}
+                    className="h-8 w-8 cursor-pointer mb-2"
+                  />
+                </Tooltip>
+                <Tooltip text={"Yeni todo listesi"} position={"top"}>
+                  <List
+                    onClick={() => setIsModalAddListTodoOpen(true)}
+                    className="h-8 w-8 cursor-pointer mb-2"
+                  />
+                </Tooltip>
+                <Tooltip text={"Excel rapor"} position={"top"}>
+                  <ListsWithReports
+                    lists={userLists}
+                    user={user}
+                    db={db}
+                    type="personal"
+                  />
+                </Tooltip>
+              </div>
 
               {/* Modal */}
               <AddTodoModal
@@ -835,17 +1003,54 @@ const TodoApp = () => {
                 newTodoCategory={newTodoCategory}
                 inputRef={inputAddTodoRef}
                 categories={categories}
+                stores={stores}
+                units={units}
                 newTodoDueDate={newTodoDueDate} // Yeni prop
                 setNewTodoDueDate={setNewTodoDueDate} // Yeni prop
                 todoType={"personal"}
               />
             </div>
+
+            <div className="mb-2">
+              {loadingUserList ? (
+                <div>Loading lists...</div>
+              ) : userLists.length > 0 ? (
+                <div className="space-y-2">
+                  {userLists.map((list) => (
+                    // <ExpandableListItem
+                    //   key={list.id}
+                    //   list={list}
+                    //   onEdit={(list) => {
+                    //     setCurrentEditList(list);
+                    //     setIsEditListModalOpen(true);
+                    //   }}
+                    //   onDelete={handleDeleteList}
+                    //   user={user}
+                    //   db={db}
+                    // />
+                    <ExpandableListAll
+                      list={list}
+                      onDelete={handleDeleteList}
+                      user={user}
+                      db={db}
+                      expandedListId={expandedListId}
+                      setExpandedListId={setExpandedListId}
+                      listType={"lists"}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-500 text-center py-4"></div>
+              )}
+            </div>
+
             <TodoList
               todos={todos}
               editingId={editingId}
               editText={editText}
               setEditText={setEditText}
               saveEdit={saveEdit}
+              saveEditTodo={saveEditTodo}
               toggleComplete={toggleComplete}
               startEditing={startEditing}
               handleDeleteClick={handleDeleteClick}
@@ -858,6 +1063,10 @@ const TodoApp = () => {
               setEditUnit={setEditUnit}
               editAmount={editAmount}
               categories={categories}
+              stores={stores}
+              units={units}
+              editTodo={editTodo}
+              setEditTodo={setEditTodo}
             />
           </TabsContent>
 
@@ -879,22 +1088,47 @@ const TodoApp = () => {
                 </div>
                 <div>
                   {/* Modal Açma Butonu */}
-                  <CirclePlus
-                    onClick={() => setIsModalAddTodoOpen(true)}
-                    className="h-8 w-8 cursor-pointer m-3"
-                  />
+                  <div className="flex  justify-between">
+                    <Tooltip text="Todo ekle" position="top">
+                      <CirclePlus
+                        onClick={() => setIsModalAddTodoOpen(true)}
+                        className="h-8 w-8 cursor-pointer mb-3"
+                      />
+                    </Tooltip>
+                    <Tooltip text="Yeni todo listesi" position="top">
+                      <List
+                        onClick={() => setIsModalAddListTodoOpen(true)}
+                        className="h-8 w-8 cursor-pointer mb-2"
+                      />
+                    </Tooltip>
+                    <Tooltip text="Yeni gelişmiş todo listesi" position="left">
+                      <ListTodo
+                        onClick={() => setIsModalAddListTodoAdvancedOpen(true)}
+                        className="h-8 w-8 cursor-pointer mb-2"
+                      />
+                    </Tooltip>
+                    <Tooltip text="Excel rapor" position="top">
+                      <ListsWithReports
+                        lists={groupLists}
+                        user={user}
+                        db={db}
+                        type="group"
+                        groupId={selectedGroupId}
+                      />
+                    </Tooltip>
+                  </div>
 
                   {/* Modal */}
                   <AddTodoModal
                     todos={todosAll}
                     isOpen={isModalAddTodoOpen}
                     onClose={() => {
-                      setIsModalAddTodoOpen(false)
-                      setNewTodo("")
-                      setNewTodoCategory("")
-                      setNewTodoAmount("")
-                      setNewTodoUnit("")
-                      setNewTodoPrice("")
+                      setIsModalAddTodoOpen(false);
+                      setNewTodo("");
+                      setNewTodoCategory("");
+                      setNewTodoAmount("");
+                      setNewTodoUnit("");
+                      setNewTodoPrice("");
                     }}
                     addTodo={addTodo}
                     newTodo={newTodo}
@@ -908,7 +1142,78 @@ const TodoApp = () => {
                     inputRef={inputAddTodoRef}
                     categories={categories}
                     todoType={"group"}
+                    units={units}
                   />
+                </div>
+                <div className="mb-2">
+                  {loadingGroupListAdvanced ? (
+                    <div>Loading lists Advanced...</div>
+                  ) : groupListsAdvanced.length > 0 ? (
+                    <div className="space-y-2">
+                      {groupListsAdvanced.map((list) => (
+                        // <ExpandableListItemGroup
+                        //   key={list.id}
+                        //   list={list}
+                        //   onEdit={(list) => {
+                        //     setCurrentEditList(list);
+                        //     setIsEditListModalOpen(true);
+                        //   }}
+                        //   onDelete={handleDeleteList}
+                        //   user={user}
+                        //   db={db}
+                        //   selectedGroupId={selectedGroupId}
+                        // />
+                        <ExpandableListAll
+                          list={list}
+                          onDelete={handleDeleteList}
+                          user={user}
+                          db={db}
+                          type="group"
+                          groupId={selectedGroupId}
+                          expandedListId={expandedListId}
+                          setExpandedListId={setExpandedListId}
+                          listType={"listsAdvanced"}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-center py-4"></div>
+                  )}
+                </div>
+                <div className="mb-2">
+                  {loadingGroupList ? (
+                    <div>Loading lists...</div>
+                  ) : groupLists.length > 0 ? (
+                    <div className="space-y-2">
+                      {groupLists.map((list) => (
+                        // <ExpandableListItemGroup
+                        //   key={list.id}
+                        //   list={list}
+                        //   onEdit={(list) => {
+                        //     setCurrentEditList(list);
+                        //     setIsEditListModalOpen(true);
+                        //   }}
+                        //   onDelete={handleDeleteList}
+                        //   user={user}
+                        //   db={db}
+                        //   selectedGroupId={selectedGroupId}
+                        // />
+                        <ExpandableListAll
+                          list={list}
+                          onDelete={handleDeleteList}
+                          user={user}
+                          db={db}
+                          type="group"
+                          groupId={selectedGroupId}
+                          expandedListId={expandedListId}
+                          setExpandedListId={setExpandedListId}
+                          listType={"lists"}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-center py-4"></div>
+                  )}
                 </div>
                 <TodoList
                   todos={groupTodos}
@@ -916,6 +1221,7 @@ const TodoApp = () => {
                   editText={editText}
                   setEditText={setEditText}
                   saveEdit={saveEdit}
+                  saveEditTodo={saveEditTodo}
                   toggleComplete={toggleComplete}
                   startEditing={startEditing}
                   handleDeleteClick={handleDeleteClick}
@@ -928,6 +1234,10 @@ const TodoApp = () => {
                   setEditUnit={setEditUnit}
                   editAmount={editAmount}
                   categories={categories}
+                  stores={stores}
+                  units={units}
+                  editTodo={editTodo}
+                  setEditTodo={setEditTodo}
                 />
               </>
             ) : (
@@ -988,12 +1298,14 @@ const TodoApp = () => {
                     todos={todosAll}
                     isOpen={isModalAddTodoDirectArchiveOpen}
                     onClose={() => {
-                      setIsModalAddTodoDirectArchiveOpen(false)
-                      setNewTodo("")
-                      setNewTodoCategory("")
-                      setNewTodoAmount("")
-                      setNewTodoUnit("")
-                      setNewTodoPrice("")
+                      setIsModalAddTodoDirectArchiveOpen(false);
+                      setNewTodo("");
+                      setNewTodoCategory("");
+                      setNewTodoAmount("");
+                      setNewTodoUnit("");
+                      setNewTodoPrice("");
+                      setNewTodoBrand("");
+                      setNewTodoStore("");
                     }}
                     addTodoDirectArchive={addTodoDirectArchive}
                     newTodo={newTodo}
@@ -1009,6 +1321,12 @@ const TodoApp = () => {
                     inputRef={inputAddTodoRef}
                     categories={categories}
                     todoType={"archive"}
+                    stores={stores}
+                    units={units}
+                    newTodoBrand={newTodoBrand} // Yeni prop
+                    setNewTodoBrand={setNewTodoBrand} // Yeni prop
+                    newTodoStore={newTodoStore} // Yeni prop
+                    setNewTodoStore={setNewTodoStore} // Yeni prop
                   />
                 </div>
 
@@ -1052,6 +1370,7 @@ const TodoApp = () => {
                   editText={editText}
                   setEditText={setEditText}
                   saveEdit={saveEdit}
+                  saveEditTodo={saveEditTodo}
                   toggleComplete={toggleComplete}
                   startEditing={startEditing}
                   handleDeleteClick={handleDeleteClick}
@@ -1064,6 +1383,10 @@ const TodoApp = () => {
                   setEditUnit={setEditUnit}
                   editAmount={editAmount}
                   categories={categories}
+                  stores={stores}
+                  units={units}
+                  editTodo={editTodo}
+                  setEditTodo={setEditTodo}
                 />
               </>
             ) : (
@@ -1111,6 +1434,8 @@ const TodoApp = () => {
           isOpen={isModalOpenArchive}
           onClose={() => setIsModalOpenArchive(false)}
           onConfirm={handleConfirmArchive}
+          stores={stores}
+          units={units}
           message={`'${selectedTodoArchive?.text}' adlı görevi arşivlemek istediğinize emin misiniz?`}
           confirmButtonText={"Arşivle"}
         />
@@ -1120,6 +1445,20 @@ const TodoApp = () => {
           nickName={nickName}
           user={user}
           setNickName={setNickName}
+        />
+        <AddListTodoModal
+          isOpen={isModalAddListTodoOpen}
+          onClose={() => setIsModalAddListTodoOpen(false)}
+          onSave={addListTodo}
+        />
+        <AddListTodoAdvancedModal
+          isOpen={isModalAddListTodoAdvancedOpen}
+          onClose={() => setIsModalAddListTodoAdvancedOpen(false)}
+          db={db}
+          user={user}
+          activeTab={activeTab}
+          selectedGroupId={selectedGroupId}
+          todoParameters={todoParameters}
         />
         <CategoryModal
           isOpen={isModalCategoriesOpen}
@@ -1132,11 +1471,17 @@ const TodoApp = () => {
           isOpen={isPriceModalOpen}
           onClose={() => setIsPriceModalOpen(false)}
           onConfirm={handlePriceConfirm}
+          stores={stores}
+          units={units}
           todoText={selectedTodoArchive?.text || ""}
         />
         <UnitModal
           isOpen={isModalUnitsOpen}
           onClose={() => setIsModalUnitsOpen(false)}
+        />
+        <StoreModal
+          isOpen={isModalStoresOpen}
+          onClose={() => setIsModalStoresOpen(false)}
         />
         <ToastContainer />
         {/* <Notification /> */}

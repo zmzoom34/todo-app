@@ -22,7 +22,13 @@ const AddTodoDirectArchiveModal = ({
   categories,
   newTodoDueDate,
   setNewTodoDueDate,
-  todoType
+  newTodoBrand,
+  setNewTodoBrand,
+  newTodoStore,
+  setNewTodoStore,
+  todoType,
+  stores,
+  units
 }) => {
   if (!isOpen) return null;
   const uniqueTodos = todos.filter(
@@ -81,7 +87,13 @@ const AddTodoDirectArchiveModal = ({
             categories={categories}
             newTodoDueDate={newTodoDueDate} // Yeni prop
             setNewTodoDueDate={setNewTodoDueDate} // Yeni prop
+            newTodoBrand={newTodoBrand} // Yeni prop
+            setNewTodoBrand={setNewTodoBrand} // Yeni prop
+            newTodoStore={newTodoStore} // Yeni prop
+            setNewTodoStore={setNewTodoStore} // Yeni prop
             todoType={todoType}
+            stores={stores}
+            units={units}
           />
         </form>
       </div>
