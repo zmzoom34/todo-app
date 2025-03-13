@@ -1,42 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import emailjs from "emailjs-com";
-import { DropdownMenu, DropdownMenuItem } from "./ui/DropdownMenu";
-import {
-  LogOut,
-  Settings,
-  Users,
-  User,
-  UserRoundPen,
-  Archive,
-  Menu,
-  Ruler,
-  Bell,
-  Plus,
-  CirclePlus,
-  Store,
-  List,
-  Edit,
-  Trash,
-  Save,
-  CircleX,
-  ListTodo,
-} from "lucide-react";
-import CancelIcon from "@mui/icons-material/Cancel";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
+import { Users, User, Archive } from "lucide-react";
+import { Card, CardContent } from "./ui/card";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
 import CategoryModal from "./CategoryModal";
 import UnitModal from "./UnitModal";
-import AddTodoModal from "./ui/AddTodoModal";
 import AddListTodoModal from "./ui/AddListTodoModal";
 import AddListTodoAdvancedModal from "./ui/AddListTodoAdvancedModal";
-import AddTodoDirectArchiveModal from "./ui/AddTodoDirectArchiveModal";
 import {
   collection,
   addDoc,
@@ -44,16 +16,10 @@ import {
   updateDoc,
   doc,
   getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  orderBy,
-  //setDoc,
 } from "firebase/firestore";
-import { getAuth, signOut } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { db } from "../firebase-config";
 import AuthComponent from "../components/AuthComponent";
-import TodoList from "../components/TodoList";
 import GroupSettingsModal from "../components/GroupSettingsModal";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/ReactToastify.css";
@@ -72,17 +38,12 @@ import useFetchGroupListsAdvanced from "../hooks/useFetchGroupListsAdvanced";
 import useUserData from "../hooks/useUserData";
 import useFetchCategories from "../hooks/useFetchCategories";
 import useFetchStores from "../hooks/useFetchStores";
-import ReportModal from "../components/ReportModal"; // Rapor modal bileşeni
 import Notification from "./Notification";
 import PriceInputModal from "./ui/PriceInputModal";
-import { requestNotificationPermission } from "../firebase-config";
-import BackupCollectionToJson from "./ui/BackupCollectionToJson";
 import StoreModal from "./StoreModal";
 import useFetchUnits from "../hooks/useFetchUnits";
-import ExpandableListAll from "./ui/ExpandableListAll";
-import ListsWithReports from "./ui/ListsWithReport";
-import Tooltip from "./ui/Tooltip";
-//import ReportModal from "../../public/"; // Rapor modal bileşeni
+import AppHeader from "./AppHeader";
+import TabContent from "./TabContent";
 
 const TodoApp = () => {
   const auth = getAuth();
@@ -110,6 +71,7 @@ const TodoApp = () => {
   const [selectedTodoArchive, setSelectedTodoArchive] = useState(null);
   const [isModalAddTodoOpen, setIsModalAddTodoOpen] = useState(false);
   const [isModalAddListTodoOpen, setIsModalAddListTodoOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isModalAddListTodoAdvancedOpen, setIsModalAddListTodoAdvancedOpen] =
     useState(false);
   const [isModalAddTodoDirectArchiveOpen, setIsModalAddTodoDirectArchiveOpen] =
@@ -121,10 +83,6 @@ const TodoApp = () => {
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [newTodoDueDate, setNewTodoDueDate] = useState("");
   const [expandedListId, setExpandedListId] = useState(null);
-
-  // const resendApiKey = process.env.REACT_APP_RESEND_API_KEY;
-  // console.log(resendApiKey)
-  //const resend = new Resend("re_NgSMPyhN_2fG4eZjY1sgBZZJ2QrmygfWs");
 
   // Add new state for notification permission
   const [notificationPermission, setNotificationPermission] =
@@ -149,6 +107,17 @@ const TodoApp = () => {
   });
 
   const { showToastMessage } = useToast();
+
+  useEffect(() => {
+    const groupIdFromUrl = searchParams.get("groupId");
+    console.log(groupIdFromUrl);
+    if (groupIdFromUrl && user) {
+      handleJoinGroupFromUrl(groupIdFromUrl);
+      // Parametreleri URL'den temizle
+      setSearchParams({});
+    }
+  }, [user, searchParams, setSearchParams]);
+
   const { newGroupName, setNewGroupName, createGroup } = useGroupCreation(
     db,
     user,
@@ -168,10 +137,8 @@ const TodoApp = () => {
     db,
     selectedGroupId
   );
-  const { groupListsAdvanced, loadingGroupListAdvanced } = useFetchGroupListsAdvanced(
-    db,
-    selectedGroupId
-  );
+  const { groupListsAdvanced, loadingGroupListAdvanced } =
+    useFetchGroupListsAdvanced(db, selectedGroupId);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
 
@@ -207,24 +174,6 @@ const TodoApp = () => {
     },
   ];
 
-  // Request notification permission on component mount
-  // useEffect(() => {
-  //   if ("Notification" in window) {
-  //     // Check if we already have permission
-  //     setNotificationPermission(Notification.permission);
-
-  //     if (Notification.permission === "default") {
-  //       Notification.requestPermission().then((permission) => {
-  //         setNotificationPermission(permission);
-  //       });
-  //     }
-  //   }
-  // }, []);
-
-  // useEffect(() => {
-  //   requestNotificationPermission();
-  // }, []);
-
   // Function to send notification
   const sendNotification = (todoText, createdBy) => {
     if (!("Notification" in window)) {
@@ -258,43 +207,94 @@ const TodoApp = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const joinGroup = async () => {
-    if (!groupIdToJoin.trim()) return;
-
+  // URL'den gelen groupId ile gruba katılma fonksiyonu
+  const handleJoinGroupFromUrl = async (groupId) => {
     try {
-      const groupRef = doc(db, "groups", groupIdToJoin);
+      if (!user || !user.uid) {
+        showToastMessage("Lütfen önce giriş yapın.", "warning");
+        return;
+      }
+
+      const groupRef = doc(db, "groups", groupId);
       const groupSnap = await getDoc(groupRef);
 
       if (!groupSnap.exists()) {
-        //alert("Belirtilen ID ile bir grup bulunamadı.");
-        showToastMessage("Belirtilen ID ile bir grup bulunamadı.", "warning");
+        showToastMessage("Geçersiz grup bağlantısı.", "warning");
         return;
       }
 
       const groupData = groupSnap.data();
 
       if (groupData.members.includes(user.uid)) {
-        //alert("Bu gruba zaten üyesiniz.");
+        showToastMessage("Bu gruba zaten üyesiniz.", "info");
+        setSelectedGroupId(groupId);
+        return;
+      }
+
+      const updatedMembers = [...groupData.members, user.uid];
+      await updateDoc(groupRef, { members: updatedMembers });
+
+      setSelectedGroupId(groupId);
+      setActiveTab("group");
+      showToastMessage(
+        `"${groupData.groupName}" grubuna katıldınız!`,
+        "success"
+      );
+    } catch (error) {
+      console.error("URL ile gruba katılma hatası:", error);
+      showToastMessage("Gruba katılırken bir hata oluştu.", "error");
+    }
+  };
+
+  const joinGroup = async () => {
+    console.log(groupIdToJoin);
+
+    if (!groupIdToJoin.trim()) return;
+
+    try {
+      // Kullanıcı giriş yapmış mı kontrol et
+      if (!user || !user.uid) {
+        showToastMessage("Lütfen önce giriş yapın.", "warning");
+        return;
+      }
+
+      const groupRef = doc(db, "groups", groupIdToJoin);
+      const groupSnap = await getDoc(groupRef);
+
+      if (!groupSnap.exists()) {
+        showToastMessage("Belirtilen ID ile bir grup bulunamadı.", "warning");
+        return;
+      }
+
+      const groupData = groupSnap.data();
+
+      console.log(groupData);
+
+      // Kullanıcı zaten üye mi?
+      if (groupData.members.includes(user.uid)) {
         showToastMessage("Bu gruba zaten üyesiniz.", "warning");
         return;
       }
 
+      // Yeni üye dizisini oluştur
+      const updatedMembers = [...groupData.members, user.uid];
+
+      // Grubu güncelle
       await updateDoc(groupRef, {
-        members: [...groupData.members, user.uid],
+        members: updatedMembers,
       });
 
+      // State'leri sıfırla
       setGroupIdToJoin("");
       setShowGroupSettings(false);
       setActiveTab("group");
 
-      //alert("Gruba başarıyla katıldınız!");
-      showToastMessage("Gruba başarıyla katıldınız :)", "success");
+      showToastMessage("Gruba başarıyla katıldınız!", "success");
     } catch (error) {
       console.error("Grup katılma hatası:", error);
-      //alert("Gruba katılırken bir hata oluştu. Lütfen grup ID'sini kontrol edin.");
       showToastMessage(
-        "Gruba katılırken bir hata oluştu. Lütfen grup ID sini kontrol edin.",
-        "warning"
+        "Gruba katılırken bir hata oluştu. Lütfen grup ID'sini kontrol edin.",
+        "error"
       );
     }
   };
@@ -868,543 +868,148 @@ const TodoApp = () => {
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-2xl font-bold">
-          Yapılacaklar Listesi
-        </CardTitle>
-
-        <DropdownMenu trigger={<Menu className="w-5 h-5" />}>
-          <DropdownMenuItem onClick={requestNotificationPermission}>
-            <Bell className="w-4 h-4 mr-2" />
-            {notificationPermission === "granted"
-              ? "Bildirimler Açık"
-              : "Bildirimleri Aç"}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
-            <UserRoundPen className="w-4 h-4 mr-2" />
-            Profil Bilgileri
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setShowGroupSettings(!showGroupSettings)}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Grup Ayarları
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsModalCategoriesOpen(true)}>
-            <UserRoundPen className="w-4 h-4 mr-2" />
-            Kategoriler
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsModalUnitsOpen(true)}>
-            <Ruler className="w-4 h-4 mr-2" />
-            Birimler
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsModalStoresOpen(true)}>
-            <Store className="w-4 h-4 mr-2" />
-            Mağazalar
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <BackupCollectionToJson collectionName={"todos"} />
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              signOut(auth)
-                .then(() => {
-                  setUser(null);
-                })
-                .catch((error) => {
-                  console.error("Error signing out:", error);
-                });
-            }}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Çıkış Yap
-          </DropdownMenuItem>
-        </DropdownMenu>
-      </CardHeader>
+    <Card>
+      <AppHeader
+        auth={auth}
+        user={user}
+        db={db}
+        requestNotificationPermission={requestNotificationPermission}
+        notificationPermission={notificationPermission}
+        setIsProfileModalOpen={setIsProfileModalOpen}
+        setShowGroupSettings={setShowGroupSettings}
+        setIsModalCategoriesOpen={setIsModalCategoriesOpen}
+        setIsModalUnitsOpen={setIsModalUnitsOpen}
+        setIsModalStoresOpen={setIsModalStoresOpen}
+        groupLists={groupLists}
+        selectedGroupId={selectedGroupId}
+        activeTab={activeTab}
+      />
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-4 border-b">
             <TabsTrigger
               value="group"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all ${
                 activeTab === "group"
                   ? "bg-blue-100 text-blue-600 border-b-2 border-blue-600"
                   : "text-gray-600 hover:text-blue-600"
               }`}
             >
-              <Users className="w-4 h-4" />
-              Grup
+              <Users className="w-4 h-4 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Grup</span>
+              <span className="xs:hidden text-base">Grup</span>
             </TabsTrigger>
             <TabsTrigger
               value="personal"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all ${
                 activeTab === "personal"
                   ? "bg-blue-100 text-blue-600 border-b-2 border-blue-600"
                   : "text-gray-600 hover:text-blue-600"
               }`}
             >
-              <User className="w-4 h-4" />
-              Kişisel
+              <User className="w-4 h-4 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Kişisel</span>
+              <span className="xs:hidden text-base">Kişisel</span>
             </TabsTrigger>
             <TabsTrigger
               value="archive"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all ${
                 activeTab === "archive"
                   ? "bg-blue-100 text-blue-600 border-b-2 border-blue-600"
                   : "text-gray-600 hover:text-blue-600"
               }`}
             >
-              <Archive className="w-4 h-4" />
-              Arşiv
+              <Archive className="w-4 h-4 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Arşiv</span>
+              <span className="xs:hidden text-base">Arşiv</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="personal">
-            <div>
-              {/* Modal Açma Butonu */}
-              <div className="flex  justify-between">
-                <Tooltip text={"Todo ekle"} position={"top"}>
-                  <CirclePlus
-                    onClick={() => setIsModalAddTodoOpen(true)}
-                    className="h-8 w-8 cursor-pointer mb-2"
-                  />
-                </Tooltip>
-                <Tooltip text={"Yeni todo listesi"} position={"top"}>
-                  <List
-                    onClick={() => setIsModalAddListTodoOpen(true)}
-                    className="h-8 w-8 cursor-pointer mb-2"
-                  />
-                </Tooltip>
-                <Tooltip text={"Excel rapor"} position={"top"}>
-                  <ListsWithReports
-                    lists={userLists}
-                    user={user}
-                    db={db}
-                    type="personal"
-                  />
-                </Tooltip>
-              </div>
-
-              {/* Modal */}
-              <AddTodoModal
-                todos={todosAll}
-                isOpen={isModalAddTodoOpen}
-                onClose={() => setIsModalAddTodoOpen(false)}
-                addTodo={addTodo}
-                newTodo={newTodo}
-                setNewTodo={setNewTodo}
-                newTodoAmount={newTodoAmount}
-                setNewTodoAmount={setNewTodoAmount}
-                newTodoUnit={newTodoUnit}
-                setNewTodoUnit={setNewTodoUnit}
-                setNewTodoCategory={setNewTodoCategory}
-                newTodoCategory={newTodoCategory}
-                inputRef={inputAddTodoRef}
-                categories={categories}
-                stores={stores}
-                units={units}
-                newTodoDueDate={newTodoDueDate} // Yeni prop
-                setNewTodoDueDate={setNewTodoDueDate} // Yeni prop
-                todoType={"personal"}
-              />
-            </div>
-
-            <div className="mb-2">
-              {loadingUserList ? (
-                <div>Loading lists...</div>
-              ) : userLists.length > 0 ? (
-                <div className="space-y-2">
-                  {userLists.map((list) => (
-                    // <ExpandableListItem
-                    //   key={list.id}
-                    //   list={list}
-                    //   onEdit={(list) => {
-                    //     setCurrentEditList(list);
-                    //     setIsEditListModalOpen(true);
-                    //   }}
-                    //   onDelete={handleDeleteList}
-                    //   user={user}
-                    //   db={db}
-                    // />
-                    <ExpandableListAll
-                      list={list}
-                      onDelete={handleDeleteList}
-                      user={user}
-                      db={db}
-                      expandedListId={expandedListId}
-                      setExpandedListId={setExpandedListId}
-                      listType={"lists"}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-gray-500 text-center py-4"></div>
-              )}
-            </div>
-
-            <TodoList
-              todos={todos}
-              editingId={editingId}
-              editText={editText}
-              setEditText={setEditText}
-              saveEdit={saveEdit}
-              saveEditTodo={saveEditTodo}
-              toggleComplete={toggleComplete}
-              startEditing={startEditing}
-              handleDeleteClick={handleDeleteClick}
-              handleArchiveClick={handleArchiveClick}
-              activeTab={activeTab}
-              nickName={nickName}
-              setEditCategory={setEditCategory}
-              setEditingId={setEditingId}
-              setEditAmount={setEditAmount}
-              setEditUnit={setEditUnit}
-              editAmount={editAmount}
-              categories={categories}
-              stores={stores}
-              units={units}
-              editTodo={editTodo}
-              setEditTodo={setEditTodo}
-            />
-          </TabsContent>
-
-          <TabsContent value="group">
-            {groups.length > 0 ? (
-              <>
-                <div className="mb-4">
-                  <select
-                    className="w-full p-2 border rounded-md"
-                    value={selectedGroupId}
-                    onChange={(e) => setSelectedGroupId(e.target.value)}
-                  >
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.groupName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  {/* Modal Açma Butonu */}
-                  <div className="flex  justify-between">
-                    <Tooltip text="Todo ekle" position="top">
-                      <CirclePlus
-                        onClick={() => setIsModalAddTodoOpen(true)}
-                        className="h-8 w-8 cursor-pointer mb-3"
-                      />
-                    </Tooltip>
-                    <Tooltip text="Yeni todo listesi" position="top">
-                      <List
-                        onClick={() => setIsModalAddListTodoOpen(true)}
-                        className="h-8 w-8 cursor-pointer mb-2"
-                      />
-                    </Tooltip>
-                    <Tooltip text="Yeni gelişmiş todo listesi" position="left">
-                      <ListTodo
-                        onClick={() => setIsModalAddListTodoAdvancedOpen(true)}
-                        className="h-8 w-8 cursor-pointer mb-2"
-                      />
-                    </Tooltip>
-                    <Tooltip text="Excel rapor" position="top">
-                      <ListsWithReports
-                        lists={groupLists}
-                        user={user}
-                        db={db}
-                        type="group"
-                        groupId={selectedGroupId}
-                      />
-                    </Tooltip>
-                  </div>
-
-                  {/* Modal */}
-                  <AddTodoModal
-                    todos={todosAll}
-                    isOpen={isModalAddTodoOpen}
-                    onClose={() => {
-                      setIsModalAddTodoOpen(false);
-                      setNewTodo("");
-                      setNewTodoCategory("");
-                      setNewTodoAmount("");
-                      setNewTodoUnit("");
-                      setNewTodoPrice("");
-                    }}
-                    addTodo={addTodo}
-                    newTodo={newTodo}
-                    setNewTodo={setNewTodo}
-                    newTodoAmount={newTodoAmount}
-                    setNewTodoAmount={setNewTodoAmount}
-                    newTodoUnit={newTodoUnit}
-                    setNewTodoUnit={setNewTodoUnit}
-                    setNewTodoCategory={setNewTodoCategory}
-                    newTodoCategory={newTodoCategory}
-                    inputRef={inputAddTodoRef}
-                    categories={categories}
-                    todoType={"group"}
-                    units={units}
-                  />
-                </div>
-                <div className="mb-2">
-                  {loadingGroupListAdvanced ? (
-                    <div>Loading lists Advanced...</div>
-                  ) : groupListsAdvanced.length > 0 ? (
-                    <div className="space-y-2">
-                      {groupListsAdvanced.map((list) => (
-                        // <ExpandableListItemGroup
-                        //   key={list.id}
-                        //   list={list}
-                        //   onEdit={(list) => {
-                        //     setCurrentEditList(list);
-                        //     setIsEditListModalOpen(true);
-                        //   }}
-                        //   onDelete={handleDeleteList}
-                        //   user={user}
-                        //   db={db}
-                        //   selectedGroupId={selectedGroupId}
-                        // />
-                        <ExpandableListAll
-                          list={list}
-                          onDelete={handleDeleteList}
-                          user={user}
-                          db={db}
-                          type="group"
-                          groupId={selectedGroupId}
-                          expandedListId={expandedListId}
-                          setExpandedListId={setExpandedListId}
-                          listType={"listsAdvanced"}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-gray-500 text-center py-4"></div>
-                  )}
-                </div>
-                <div className="mb-2">
-                  {loadingGroupList ? (
-                    <div>Loading lists...</div>
-                  ) : groupLists.length > 0 ? (
-                    <div className="space-y-2">
-                      {groupLists.map((list) => (
-                        // <ExpandableListItemGroup
-                        //   key={list.id}
-                        //   list={list}
-                        //   onEdit={(list) => {
-                        //     setCurrentEditList(list);
-                        //     setIsEditListModalOpen(true);
-                        //   }}
-                        //   onDelete={handleDeleteList}
-                        //   user={user}
-                        //   db={db}
-                        //   selectedGroupId={selectedGroupId}
-                        // />
-                        <ExpandableListAll
-                          list={list}
-                          onDelete={handleDeleteList}
-                          user={user}
-                          db={db}
-                          type="group"
-                          groupId={selectedGroupId}
-                          expandedListId={expandedListId}
-                          setExpandedListId={setExpandedListId}
-                          listType={"lists"}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-gray-500 text-center py-4"></div>
-                  )}
-                </div>
-                <TodoList
-                  todos={groupTodos}
-                  editingId={editingId}
-                  editText={editText}
-                  setEditText={setEditText}
-                  saveEdit={saveEdit}
-                  saveEditTodo={saveEditTodo}
-                  toggleComplete={toggleComplete}
-                  startEditing={startEditing}
-                  handleDeleteClick={handleDeleteClick}
-                  handleArchiveClick={handleArchiveClick}
-                  activeTab={activeTab}
-                  nickName={nickName}
-                  setEditingId={setEditingId}
-                  setEditCategory={setEditCategory}
-                  setEditAmount={setEditAmount}
-                  setEditUnit={setEditUnit}
-                  editAmount={editAmount}
-                  categories={categories}
-                  stores={stores}
-                  units={units}
-                  editTodo={editTodo}
-                  setEditTodo={setEditTodo}
-                />
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Henüz bir gruba üye değilsiniz.</p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => setShowGroupSettings(true)}
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Gruplara Katıl
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="archive">
-            {groups.length > 0 ? (
-              <>
-                <div className="mb-4">
-                  <select
-                    className="w-full p-2 border rounded-md"
-                    value={selectedGroupId}
-                    onChange={(e) => setSelectedGroupId(e.target.value)}
-                  >
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.groupName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-4 flex items-center justify-between gap-2">
-                  {/* Tarih Seçici ve Rapor Butonu */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="month"
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="p-2 border rounded-md"
-                    />
-                    <button
-                      onClick={generateMonthlyReport}
-                      className="text-white px-4 py-2 rounded-md"
-                    >
-                      📝
-                    </button>
-                  </div>
-
-                  {/* Direkt Arşive Ekle Butonu (En sağda ve ortalanmış) */}
-                  <CirclePlus
-                    className="w-8 h-8 cursor-pointer"
-                    onClick={() => setIsModalAddTodoDirectArchiveOpen(true)}
-                  />
-                  {/* Modal */}
-                  <AddTodoDirectArchiveModal
-                    todos={todosAll}
-                    isOpen={isModalAddTodoDirectArchiveOpen}
-                    onClose={() => {
-                      setIsModalAddTodoDirectArchiveOpen(false);
-                      setNewTodo("");
-                      setNewTodoCategory("");
-                      setNewTodoAmount("");
-                      setNewTodoUnit("");
-                      setNewTodoPrice("");
-                      setNewTodoBrand("");
-                      setNewTodoStore("");
-                    }}
-                    addTodoDirectArchive={addTodoDirectArchive}
-                    newTodo={newTodo}
-                    setNewTodo={setNewTodo}
-                    newTodoAmount={newTodoAmount}
-                    setNewTodoAmount={setNewTodoAmount}
-                    newTodoPrice={newTodoPrice}
-                    setNewTodoPrice={setNewTodoPrice}
-                    newTodoUnit={newTodoUnit}
-                    setNewTodoUnit={setNewTodoUnit}
-                    setNewTodoCategory={setNewTodoCategory}
-                    newTodoCategory={newTodoCategory}
-                    inputRef={inputAddTodoRef}
-                    categories={categories}
-                    todoType={"archive"}
-                    stores={stores}
-                    units={units}
-                    newTodoBrand={newTodoBrand} // Yeni prop
-                    setNewTodoBrand={setNewTodoBrand} // Yeni prop
-                    newTodoStore={newTodoStore} // Yeni prop
-                    setNewTodoStore={setNewTodoStore} // Yeni prop
-                  />
-                </div>
-
-                {/* Rapor Modalı */}
-                {isReportModalOpen && (
-                  <ReportModal
-                    isOpen={isReportModalOpen}
-                    onClose={closeReportModal}
-                    reportData={monthlyReport}
-                    categories={categories}
-                  />
-                )}
-
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-                  {/* Arama Kutusu */}
-                  <input
-                    type="text"
-                    placeholder="Arşivde ara..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-2 border rounded-md"
-                  />
-
-                  {/* Kategori Seçici */}
-                  <select
-                    className="p-2 border rounded-md"
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                  >
-                    <option value="">Tüm Kategoriler</option>
-                    {categories.map((category) => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <TodoList
-                  todos={filteredArchivedTodos} // Filtrelenmiş görevleri göster
-                  editingId={editingId}
-                  editText={editText}
-                  setEditText={setEditText}
-                  saveEdit={saveEdit}
-                  saveEditTodo={saveEditTodo}
-                  toggleComplete={toggleComplete}
-                  startEditing={startEditing}
-                  handleDeleteClick={handleDeleteClick}
-                  handleArchiveClick={handleArchiveClick}
-                  activeTab={activeTab}
-                  nickName={nickName}
-                  setEditingId={setEditingId}
-                  setEditCategory={setEditCategory}
-                  setEditAmount={setEditAmount}
-                  setEditUnit={setEditUnit}
-                  editAmount={editAmount}
-                  categories={categories}
-                  stores={stores}
-                  units={units}
-                  editTodo={editTodo}
-                  setEditTodo={setEditTodo}
-                />
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Henüz bir gruba üye değilsiniz.</p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => setShowGroupSettings(true)}
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Gruplara Katıl
-                </Button>
-              </div>
-            )}
-          </TabsContent>
+          <TabContent
+            activeTab={activeTab}
+            todos={todos}
+            todosAll={todosAll}
+            groupTodos={groupTodos}
+            filteredArchivedTodos={filteredArchivedTodos}
+            userLists={userLists}
+            groupLists={groupLists}
+            groupListsAdvanced={groupListsAdvanced}
+            groups={groups}
+            editingId={editingId}
+            editText={editText}
+            setEditText={setEditText}
+            saveEdit={saveEdit}
+            saveEditTodo={saveEditTodo}
+            toggleComplete={toggleComplete}
+            startEditing={startEditing}
+            handleDeleteClick={handleDeleteClick}
+            handleArchiveClick={handleArchiveClick}
+            nickName={nickName}
+            setEditingId={setEditingId}
+            setEditCategory={setEditCategory}
+            setEditAmount={setEditAmount}
+            setEditUnit={setEditUnit}
+            editAmount={editAmount}
+            categories={categories}
+            stores={stores}
+            units={units}
+            editTodo={editTodo}
+            setEditTodo={setEditTodo}
+            selectedGroupId={selectedGroupId}
+            setSelectedGroupId={setSelectedGroupId}
+            isModalAddTodoOpen={isModalAddTodoOpen}
+            setIsModalAddTodoOpen={setIsModalAddTodoOpen}
+            setIsModalAddListTodoOpen={setIsModalAddListTodoOpen}
+            setIsModalAddListTodoAdvancedOpen={
+              setIsModalAddListTodoAdvancedOpen
+            }
+            isModalAddTodoDirectArchiveOpen={isModalAddTodoDirectArchiveOpen}
+            setIsModalAddTodoDirectArchiveOpen={
+              setIsModalAddTodoDirectArchiveOpen
+            }
+            isReportModalOpen={isReportModalOpen}
+            closeReportModal={closeReportModal}
+            newTodo={newTodo}
+            setNewTodo={setNewTodo}
+            newTodoAmount={newTodoAmount}
+            setNewTodoAmount={setNewTodoAmount}
+            newTodoUnit={newTodoUnit}
+            setNewTodoUnit={setNewTodoUnit}
+            newTodoCategory={newTodoCategory}
+            setNewTodoCategory={setNewTodoCategory}
+            newTodoPrice={newTodoPrice}
+            setNewTodoPrice={setNewTodoPrice}
+            newTodoBrand={newTodoBrand}
+            setNewTodoBrand={setNewTodoBrand}
+            newTodoStore={newTodoStore}
+            setNewTodoStore={setNewTodoStore}
+            newTodoDueDate={newTodoDueDate}
+            setNewTodoDueDate={setNewTodoDueDate}
+            inputAddTodoRef={inputAddTodoRef}
+            addTodo={addTodo}
+            addTodoDirectArchive={addTodoDirectArchive}
+            handleDeleteList={handleDeleteList}
+            expandedListId={expandedListId}
+            setExpandedListId={setExpandedListId}
+            setShowGroupSettings={setShowGroupSettings}
+            loadingUserList={loadingUserList}
+            loadingGroupList={loadingGroupList}
+            loadingGroupListAdvanced={loadingGroupListAdvanced}
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            generateMonthlyReport={generateMonthlyReport}
+            monthlyReport={monthlyReport}
+            user={user}
+            db={db}
+          />
         </Tabs>
 
+        {/* All modals below - unchanged */}
         {showGroupSettings && (
           <GroupSettingsModal
             newGroupName={newGroupName}
@@ -1484,7 +1089,6 @@ const TodoApp = () => {
           onClose={() => setIsModalStoresOpen(false)}
         />
         <ToastContainer />
-        {/* <Notification /> */}
       </CardContent>
     </Card>
   );

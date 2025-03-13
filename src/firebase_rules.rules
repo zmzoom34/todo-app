@@ -1,0 +1,224 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database
+    }/documents {
+        // Basic auth check
+    function isAuthenticated() {
+      return request.auth != null;
+        }
+        // Todos collection rules
+    match /todos/{todoId
+        } {
+            // Validate todo creation
+      function isValidTodo() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['text', 'completed', 'userId', 'createdAt', 'updatedAt', 'type'
+                ]) &&
+               data.userId == request.auth.uid &&
+               (data.type == 'personal' || data.type == 'group')
+            }
+            // Check if user is the todo owner
+      function isOwner() {
+        return resource.data.userId == request.auth.uid;
+            }
+            // Check if user is a member of the group for group todos
+      function isGroupMember(groupId) {
+        return exists(/databases/$(database)/documents/groups/$(groupId)) &&
+               request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+            }
+            // Check for valid group todo creation
+      function isValidGroupTodo() {
+        let data = request.resource.data;
+        return data.type == 'group' &&
+               data.groupId != null &&
+               isGroupMember(data.groupId);
+            }
+      
+      allow read: if isAuthenticated(); // 🔥 Giriş yapmış herkes todo'ları okuyabilir
+      
+      allow create: if isAuthenticated() && isValidTodo() && (
+        request.resource.data.type == 'personal' ||
+        (request.resource.data.type == 'group' && isValidGroupTodo())
+      );
+      
+      allow update: if isAuthenticated() && (
+        (resource.data.type == 'personal' && isOwner()) ||
+        (resource.data.type == 'group' && isGroupMember(resource.data.groupId))
+      );
+      
+      allow delete: if isAuthenticated() && (
+        (resource.data.type == 'personal' && isOwner()) ||
+        (resource.data.type == 'group' && isGroupMember(resource.data.groupId))
+      );
+        }
+    
+match /users/{userId
+        } {
+  allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+  allow read: if request.auth != null;
+  allow create: if request.auth != null && request.auth.uid == userId;
+        }
+
+match /units/{unitId
+        } {
+  allow read: if request.auth != null; // Giriş yapan herkes kategorileri görebilir
+  allow create, update, delete: if request.auth != null; // Giriş yapan herkes kategori ekleyebilir veya düzenleyebilir
+        }
+
+match /stores/{unitId
+        } {
+  allow read: if request.auth != null; // Giriş yapan herkes kategorileri görebilir
+  allow create, update, delete: if request.auth != null; // Giriş yapan herkes kategori ekleyebilir veya düzenleyebilir
+        }
+
+match /categories/{categoryId
+        } {
+  allow read: if request.auth != null; // Giriş yapan herkes kategorileri görebilir
+  allow create, update, delete: if request.auth != null; // Giriş yapan herkes kategori ekleyebilir veya düzenleyebilir
+        }
+        // Add this to your existing security rules
+match /users/{userId
+        }/lists/{listId
+        } {
+  allow create: if request.auth != null && request.auth.uid == userId;
+  allow read: if request.auth != null && request.auth.uid == userId;
+  allow update, delete: if request.auth != null && request.auth.uid == userId;
+        }
+        // Add this to your existing security rules
+match /users/{userId
+        }/lists/{listId
+        }/todos/{todoId
+        } {
+  allow create: if request.auth != null && request.auth.uid == userId;
+  allow read: if request.auth != null && request.auth.uid == userId;
+  allow update, delete: if request.auth != null && request.auth.uid == userId;
+        }
+
+match /groups/{groupId
+        }/lists/{listId
+        }/todos/{todoId
+        } {
+            // Reuse the isGroupMember function from earlier rules
+  function isGroupMember() {
+    return exists(/databases/$(database)/documents/groups/$(groupId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+            }
+
+  allow create: if request.auth != null && isGroupMember();
+  allow read: if request.auth != null && isGroupMember();
+  allow update, delete: if request.auth != null && isGroupMember();
+        }
+
+match /groups/{groupId
+        }/lists/{listId
+        } {
+            // Reuse the isGroupMember function
+  function isGroupMember() {
+    return exists(/databases/$(database)/documents/groups/$(groupId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+            }
+
+  allow read: if request.auth != null && isGroupMember();
+  allow create: if request.auth != null && isGroupMember();
+  allow update, delete: if request.auth != null && isGroupMember();
+        }
+
+match /groups/{groupId
+        }/listsAdvanced/{listId
+        } {
+  function isGroupMember() {
+    return exists(/databases/$(database)/documents/groups/$(groupId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+            }
+  allow create: if request.auth != null && isGroupMember();
+  allow read: if request.auth != null && isGroupMember();
+  allow update, delete: if request.auth != null && isGroupMember();
+        }
+
+match /groups/{groupId
+        }/listsAdvanced/{listId
+        }/todos/{todoId
+        } {
+  function isGroupMember() {
+    return exists(/databases/$(database)/documents/groups/$(groupId)) &&
+           request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+            }
+
+  allow create: if request.auth != null && isGroupMember();
+  allow read: if request.auth != null && isGroupMember();
+  allow update, delete: if request.auth != null && isGroupMember();
+        }
+
+match /users/{userId
+        }/listsAdvanced/{listId
+        }/todos/{todoId
+        } {
+  allow create: if request.auth != null && request.auth.uid == userId;
+  allow read: if request.auth != null && request.auth.uid == userId;
+  allow update, delete: if request.auth != null && request.auth.uid == userId;
+        }
+        // Users collection rules with FCM token support
+    match /users/{userId
+        } {
+            // Validate FCM token update
+      function isValidFCMTokenUpdate() {
+        let incomingData = request.resource.data;
+        let currentData = resource.data;
+        
+        // Allow updating fcmToken while preserving other fields
+        return incomingData.diff(currentData).affectedKeys().hasOnly(['fcmToken'
+                ]) ||
+               // Or allow updating other existing fields while preserving fcmToken
+               (currentData.fcmToken == incomingData.fcmToken);
+            }
+
+      allow read: if isAuthenticated();
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId && (
+        isValidFCMTokenUpdate() || 
+        // Diğer güncelleme kuralları buraya eklenebilir
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nickName'
+            ])
+      );
+      allow delete: if request.auth.uid == userId;
+        }
+
+match /groups/{groupId
+        } {
+            // Kullanıcının grupta olup olmadığını kontrol et
+  function isGroupMember() {
+    return request.auth.uid in resource.data.members;
+            }
+            // Geçerli grup oluşturma
+  function isValidNewGroup() {
+    let data = request.resource.data;
+    return data.keys().hasAll(['groupName', 'createdBy', 'members', 'createdAt'
+                ]) &&
+           data.createdBy == request.auth.uid &&
+           data.members.hasAll([request.auth.uid
+                ]);
+            }
+            // Geçerli grup güncellemesi (üye ekleme)
+  function isValidMemberAddition() {
+    let incomingMembers = request.resource.data.members; // Gelen sadece üyeler dizisi
+    let currentMembers = resource.data.members; // Mevcut üyeler dizisi
+
+    // Yeni üye dizisi, mevcut üyeler + yeni kullanıcıyı içermeli
+    let membersAdded = incomingMembers.size() == currentMembers.size() + 1;
+    let includesNewMember = incomingMembers.difference(currentMembers).hasAny([request.auth.uid
+                ]);
+
+    return membersAdded && includesNewMember;
+            }
+            // İzinler
+  allow read: if isAuthenticated();
+  allow create: if isAuthenticated() && isValidNewGroup();
+  allow update: if isAuthenticated();
+  //&& (
+            //isGroupMember() || // Mevcut üyeler güncelleyebilir
+            //isValidMemberAddition() // Yeni kullanıcı kendini ekleyebilir
+            //);
+  allow delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+        }
+    }
+}

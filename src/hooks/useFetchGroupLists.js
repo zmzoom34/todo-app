@@ -26,7 +26,6 @@ export const useFetchGroupLists = (db, selectedGroupId) => {
            ...doc.data(),
          }));
 
-         console.log("Fetched lists:", listData);
          setGroupLists(listData);
          setLoadingGroupList(false);
        },

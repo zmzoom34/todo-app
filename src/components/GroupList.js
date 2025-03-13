@@ -1,5 +1,5 @@
 import React from "react";
-import { LogOut, Trash, Edit } from "lucide-react";
+import { LogOut, Trash, Edit, Link as LinkIcon } from "lucide-react"; // LinkIcon eklendi
 import { Tooltip } from "@mui/material";
 
 const GroupList = ({
@@ -10,10 +10,17 @@ const GroupList = ({
   handleCopyToClipboard,
   user,
 }) => {
+  // Kullanıcı kontrolü
+  if (!user) {
+    return <p>Loading...</p>; // veya başka bir fallback UI
+  }
 
-    if (!user) {
-        return <p>Loading...</p>; // Or some fallback UI
-      }
+  const generateInviteLink = (groupId) => {
+    const baseUrl = window.location.origin; // Uygulamanızın base URL'si
+    return `${baseUrl}/join?groupId=${groupId}`;
+  };
+
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2">Üye Olduğunuz Gruplar</h3>
@@ -35,6 +42,17 @@ const GroupList = ({
                 </p>
               </div>
               <div className="flex gap-2">
+                {/* Davet Linkini Kopyala Butonu */}
+                <Tooltip title="Davet Linkini Kopyala">
+                  <LinkIcon
+                    className="text-blue-600 hover:text-blue-700"
+                    onClick={() =>
+                      handleCopyToClipboard(generateInviteLink(group.id))
+                    }
+                    style={{ cursor: "pointer" }}
+                  />
+                </Tooltip>
+
                 <Tooltip title="Grubu Terk Et">
                   <LogOut
                     variant="outline"
@@ -43,6 +61,7 @@ const GroupList = ({
                     style={{ cursor: "pointer" }}
                   />
                 </Tooltip>
+
                 {group.createdBy === user.uid && (
                   <>
                     <Tooltip title="Grubu Sil">

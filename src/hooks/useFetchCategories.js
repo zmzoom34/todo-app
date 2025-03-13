@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase-config";
 import { collection, getDocs } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const useFetchCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -9,9 +9,8 @@ const useFetchCategories = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
 
       if (!user) {
         setError("Kategorileri görmek için giriş yapmalısınız.");
@@ -19,23 +18,27 @@ const useFetchCategories = () => {
         return;
       }
 
-      try {
-        const querySnapshot = await getDocs(collection(db, "categories"));
-        const categoryList = querySnapshot.docs.map((doc) => ({
-          value: doc.id,
-          label: doc.data().name,
-        }));
+      const fetchCategories = async () => {
+        try {
+          const querySnapshot = await getDocs(collection(db, "categories"));
+          const categoryList = querySnapshot.docs.map((doc) => ({
+            value: doc.id,
+            label: doc.data().name,
+          }));
+          setCategories(categoryList);
+        } catch (error) {
+          console.error("Kategoriler alınırken hata oluştu:", error);
+          setError("Kategoriler yüklenemedi: " + error.message);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-        setCategories(categoryList);
-      } catch (error) {
-        console.error("Kategoriler alınırken hata oluştu:", error);
-        setError("Kategoriler yüklenemedi: " + error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+      fetchCategories();
+    });
 
-    fetchCategories();
+    // Cleanup: Aboneliği kaldır
+    return () => unsubscribe();
   }, []);
 
   return { categories, loading, error };

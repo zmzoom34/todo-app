@@ -31,11 +31,7 @@ const AuthComponent = ({ onAuthSuccess }) => {
     try {
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists() || !userSnap.data().nickName) {
-        navigate("/profile");
-      }
-
+  
       const userData = {
         email: user.email,
         lastLogin: new Date().toISOString(),
@@ -45,6 +41,11 @@ const AuthComponent = ({ onAuthSuccess }) => {
         userData.role = "user";
       }
       await setDoc(userRef, userData, { merge: true });
+  
+      // Only redirect to profile if nickName is missing AFTER saving data
+      if (!userSnap.exists() || !userSnap.data().nickName) {
+        navigate("/profile");
+      }
     } catch (err) {
       console.error("Error saving user data:", err);
     }

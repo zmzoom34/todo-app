@@ -26,7 +26,6 @@ export const useFetchGroupListsAdvanced = (db, selectedGroupId) => {
            ...doc.data(),
          }));
 
-         console.log("Fetched advanced lists:", listData);
          setGroupListsAdvanced(listData);
          setLoadingGroupListAdvanced(false);
        },

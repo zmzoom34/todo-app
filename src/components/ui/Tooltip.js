@@ -30,7 +30,7 @@ const Tooltip = ({ text, children, position = 'top' }) => {
         <div
           className={`
             absolute bg-white text-gray-800 px-4 py-2 rounded-md text-xs 
-            z-20 whitespace-nowrap border border-gray-300 shadow-[0px_12px_30px_-4px_rgba(16,24,40,0.08)] 
+            z-1 whitespace-nowrap border border-gray-300 shadow-[0px_12px_30px_-4px_rgba(16,24,40,0.08)] 
             transition-opacity duration-300 ${positionClasses[position]}
           `}
         >
