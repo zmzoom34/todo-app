@@ -16,7 +16,9 @@ const GroupSettingsModal = ({
   renameGroup,
   handleCopyToClipboard,
   setShowGroupSettings,
-  user
+  user,
+  setDefaultGroup, // Yeni prop eklendi
+  defaultGroupId,  // Yeni prop eklendi
 }) => {
   return (
     <div
@@ -80,6 +82,8 @@ const GroupSettingsModal = ({
           renameGroup={renameGroup}
           handleCopyToClipboard={handleCopyToClipboard}
           user={user}
+          defaultGroupId={defaultGroupId}
+          setDefaultGroup={setDefaultGroup}
         />
       </div>
     </div>

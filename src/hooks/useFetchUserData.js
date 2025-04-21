@@ -5,6 +5,7 @@ import { auth, db } from "../firebase-config"; // Firebase yapılandırma dosyas
 
 const useFetchUserData = (user) => {
     const [nickName, setNickName] = useState(null);
+    const [defaultGroupId, setDefaultGroup] = useState(null);
     const navigate = useNavigate();
   
   useEffect(() => {
@@ -14,8 +15,13 @@ const useFetchUserData = (user) => {
 
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
+      
       if (userSnap.exists() && userSnap.data().nickName) {
         setNickName(userSnap.data().nickName);
+      }
+
+      if (userSnap.exists() && userSnap.data().defaultGroup) {
+        setDefaultGroup(userSnap.data().defaultGroup);
       }
     };
 

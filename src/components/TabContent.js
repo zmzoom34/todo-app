@@ -46,6 +46,7 @@ const TabContent = ({
   editTodo,
   setEditTodo,
   selectedGroupId,
+  defaultGroupId,
   setSelectedGroupId,
   isModalAddTodoOpen,
   setIsModalAddTodoOpen,

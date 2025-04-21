@@ -1,15 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, Copy, Edit, Trash, MoreVertical, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Volume2,
+  Copy,
+  Edit,
+  Trash,
+  MoreVertical,
+  ChevronRight,
+} from "lucide-react";
 
-const MobileTodoListCard = ({ 
-    list, 
-    totalTodos, 
-    completedTodos, 
-    handleSpeak, 
-    openCopyModal, 
-    openEditListModal, 
-    handleDeleteList, 
-    setIsTodoListModalOpen
+const MobileTodoListCard = ({
+  list,
+  totalTodos,
+  completedTodos,
+  handleSpeak,
+  openCopyModal,
+  openEditListModal,
+  handleDeleteList,
+  setIsTodoListModalOpen,
 }) => {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const actionsRef = useRef(null); // Create a ref to track the actions menu
@@ -29,18 +36,18 @@ const MobileTodoListCard = ({
 
     // Add event listener when menu is open
     if (isActionsOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     // Cleanup event listener
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isActionsOpen]); // Dependency array includes isActionsOpen
 
   return (
     <div className="border rounded-md mb-2 bg-stone-100 border-green-400">
-      <div 
+      <div
         className="flex justify-between items-center p-4 cursor-pointer"
         onClick={() => setIsTodoListModalOpen(true)}
       >
@@ -52,7 +59,7 @@ const MobileTodoListCard = ({
             </span>
           )}
         </div>
-        
+
         <div className="flex items-center">
           <button
             onClick={(e) => {
@@ -64,60 +71,60 @@ const MobileTodoListCard = ({
           >
             <Volume2 className="w-5 h-5" />
           </button>
-          
-          <button
-            onClick={toggleActions}
-            className="p-2 text-gray-500 hover:text-gray-700 relative"
-            aria-label="More options"
-          >
-            <MoreVertical className="w-5 h-5" />
-          </button>
-          
-          {/* <ChevronRight className="w-4 h-4 text-gray-400 ml-1" /> */}
-        </div>
-        
-        {isActionsOpen && (
-          <div 
-            ref={actionsRef} // Attach ref to the actions menu
-            className="absolute right-4 mt-32 bg-white shadow-lg rounded-md border border-gray-200 z-10"
-          >
+
+          {/* Wrap the button and menu in a relative container */}
+          <div className="relative">
             <button
-              onClick={(e) => {
-                //e.stopPropagation();
-                openCopyModal(e);
-                setIsActionsOpen(false);
-              }}
-              className="flex items-center p-3 w-full text-left hover:bg-gray-100"
+              onClick={toggleActions}
+              className="p-2 text-gray-500 hover:text-gray-700"
+              aria-label="More options"
             >
-              <Copy className="w-4 h-4 mr-2 text-purple-500" />
-              <span>Copy list</span>
+              <MoreVertical className="w-5 h-5" />
             </button>
-            
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                openEditListModal();
-                setIsActionsOpen(false);
-              }}
-              className="flex items-center p-3 w-full text-left hover:bg-gray-100"
-            >
-              <Edit className="w-4 h-4 mr-2 text-blue-500" />
-              <span>Edit list</span>
-            </button>
-            
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteList();
-                setIsActionsOpen(false);
-              }}
-              className="flex items-center p-3 w-full text-left hover:bg-gray-100"
-            >
-              <Trash className="w-4 h-4 mr-2 text-red-500" />
-              <span>Delete list</span>
-            </button>
+
+            {isActionsOpen && (
+              <div
+                ref={actionsRef}
+                className="absolute bottom-full right-0 mb-2 bg-white shadow-lg rounded-md border border-gray-200 z-10 w-40"
+              >
+                <button
+                  onClick={(e) => {
+                    openCopyModal(e);
+                    setIsActionsOpen(false);
+                  }}
+                  className="flex items-center p-3 w-full text-left hover:bg-gray-100"
+                >
+                  <Copy className="w-4 h-4 mr-2 text-purple-500" />
+                  <span>Copy list</span>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditListModal();
+                    setIsActionsOpen(false);
+                  }}
+                  className="flex items-center p-3 w-full text-left hover:bg-gray-100"
+                >
+                  <Edit className="w-4 h-4 mr-2 text-blue-500" />
+                  <span>Edit list</span>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteList();
+                    setIsActionsOpen(false);
+                  }}
+                  className="flex items-center p-3 w-full text-left hover:bg-gray-100"
+                >
+                  <Trash className="w-4 h-4 mr-2 text-red-500" />
+                  <span>Delete list</span>
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Edit, Trash, Save, CircleX, Volume2, MoreVertical } from "lucide-react";
 import Checkbox from "./Checkbox";
 
 function TodoItem({ todo, toggleTodoCompletion, updateTodoItems, onDelete, onEdit, speechLang }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // New state for dropdown menu
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null); // Menü için ref ekledik
   const [editedData, setEditedData] = useState(
     todo.parameters
       ? Object.fromEntries(todo.parameters.map((param) => [param.id, param.value ?? ""]))
@@ -62,6 +63,28 @@ function TodoItem({ todo, toggleTodoCompletion, updateTodoItems, onDelete, onEdi
       console.error("Speech synthesis not supported.");
     }
   };
+
+  const toggleMenu = (e) => {
+    e.stopPropagation();
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  // Dışarıya tıklama kontrolü için useEffect
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   const isAdvanced = !!todo.parameters;
 
@@ -156,13 +179,16 @@ function TodoItem({ todo, toggleTodoCompletion, updateTodoItems, onDelete, onEdi
           {/* Dropdown Menu */}
           <div className="relative">
             <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={toggleMenu}
               className="p-1 text-gray-500 hover:text-gray-700"
             >
               <MoreVertical className="w-5 h-5" />
             </button>
             {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg z-10">
+              <div
+                ref={menuRef}
+                className="absolute bottom-full right-0 mb-2 w-32 bg-white shadow-lg rounded-md border border-gray-200 z-10"
+              >
                 <button
                   onClick={() => {
                     handleSpeak();

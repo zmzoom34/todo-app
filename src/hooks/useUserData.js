@@ -113,7 +113,7 @@ const useUserData = (user) => {
     groups,
     loading,
     selectedGroupId,
-    setSelectedGroupId
+    setSelectedGroupId,
   };
 };
 

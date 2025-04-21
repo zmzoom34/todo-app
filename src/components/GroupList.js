@@ -1,5 +1,5 @@
 import React from "react";
-import { LogOut, Trash, Edit, Link as LinkIcon } from "lucide-react"; // LinkIcon eklendi
+import { LogOut, Trash, Edit, Link as LinkIcon, Star } from "lucide-react"; // Star icon eklendi
 import { Tooltip } from "@mui/material";
 
 const GroupList = ({
@@ -9,17 +9,17 @@ const GroupList = ({
   renameGroup,
   handleCopyToClipboard,
   user,
+  setDefaultGroup, // Yeni prop eklendi
+  defaultGroupId,  // Yeni prop eklendi
 }) => {
-  // Kullanıcı kontrolü
   if (!user) {
-    return <p>Loading...</p>; // veya başka bir fallback UI
+    return <p>Loading...</p>;
   }
 
   const generateInviteLink = (groupId) => {
-    const baseUrl = window.location.origin; // Uygulamanızın base URL'si
+    const baseUrl = window.location.origin;
     return `${baseUrl}/join?groupId=${groupId}`;
   };
-
 
   return (
     <div>
@@ -42,6 +42,19 @@ const GroupList = ({
                 </p>
               </div>
               <div className="flex gap-2">
+                {/* Varsayılan Grup Belirleme Butonu */}
+                <Tooltip title={defaultGroupId === group.id ? "Varsayılan Grup" : "Varsayılan Olarak Belirle"}>
+                  <Star
+                    className={`${
+                      defaultGroupId === group.id 
+                        ? "text-yellow-500" 
+                        : "text-gray-600 hover:text-yellow-500"
+                    }`}
+                    onClick={() => setDefaultGroup(group.id)}
+                    style={{ cursor: "pointer" }}
+                  />
+                </Tooltip>
+
                 {/* Davet Linkini Kopyala Butonu */}
                 <Tooltip title="Davet Linkini Kopyala">
                   <LinkIcon

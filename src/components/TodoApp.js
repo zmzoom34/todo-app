@@ -26,6 +26,7 @@ import "react-toastify/ReactToastify.css";
 import ProfileModal from "./ProfileModal";
 import useFetchUserData from "../hooks/useFetchUserData";
 import { useFirebaseSubscriptions } from "../hooks/useFirebaseSubscriptions";
+import { useFirebaseUserData } from "../hooks/useFirebaseUserData";
 import { useModalFocus } from "../hooks/useModalFocus";
 import { useGroupTodos } from "../hooks/useGroupTodos";
 import { useArchivedTodos } from "../hooks/useArchivedTodos";
@@ -45,9 +46,12 @@ import useFetchUnits from "../hooks/useFetchUnits";
 import AppHeader from "./AppHeader";
 import TabContent from "./TabContent";
 
-const TodoApp = () => {
+const TodoApp = ( {
+  user, // App.js'den gelen user
+  setUser, // App.js'den gelen setUser
+}) => {
   const auth = getAuth();
-  const [user, setUser] = useState(null);
+  //const [user, setUser] = useState(null);
   const [newTodo, setNewTodo] = useState("");
   const [editTodo, setEditTodo] = useState(null);
   const [newTodoCategory, setNewTodoCategory] = useState("");
@@ -83,6 +87,7 @@ const TodoApp = () => {
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [newTodoDueDate, setNewTodoDueDate] = useState("");
   const [expandedListId, setExpandedListId] = useState(null);
+  //
 
   // Add new state for notification permission
   const [notificationPermission, setNotificationPermission] =
@@ -92,9 +97,22 @@ const TodoApp = () => {
   ); // YYYY-MM
   const [monthlyReport, setMonthlyReport] = useState(null);
   const inputAddTodoRef = useModalFocus(isModalAddTodoOpen);
-  const [nickName, setNickName] = useFetchUserData(user);
-  const { todos, groups, selectedGroupId, setSelectedGroupId, loading } =
-    useFirebaseSubscriptions(db, user);
+  //const [nickName, setNickName, defaultGroupId, setDefaultGroup] = useFetchUserData(user);
+  //const [nickName, setNickName, defaultGroupId, setDefaultGroup, loadingUserData, error] = useFetchUserData();
+
+  const {
+    nickName,
+    setNickName,
+    defaultGroupId,
+    setDefaultGroupId,
+    todos,
+    groups,
+    selectedGroupId,
+    setSelectedGroupId,
+    loading,
+  } = useFirebaseUserData(db);
+
+  //const { todos, groups, selectedGroupId, setSelectedGroupId, loading } = useFirebaseSubscriptions(db, user, defaultGroupId);
   const { groupTodos } = useGroupTodos(db, {
     user,
     selectedGroupId,
@@ -110,7 +128,6 @@ const TodoApp = () => {
 
   useEffect(() => {
     const groupIdFromUrl = searchParams.get("groupId");
-    console.log(groupIdFromUrl);
     if (groupIdFromUrl && user) {
       handleJoinGroupFromUrl(groupIdFromUrl);
       // Parametreleri URL'den temizle
@@ -173,6 +190,43 @@ const TodoApp = () => {
       type: "date",
     },
   ];
+
+  
+
+  useEffect(() => {
+    const fetchUserDataAndSubscriptions = async () => {
+      // Kullanıcı verilerini al
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData.defaultGroup) {
+          setDefaultGroupId(userData.defaultGroup)
+          setSelectedGroupId(userData.defaultGroup)
+        };
+        
+      }
+    }
+
+    if (!loading) {
+      fetchUserDataAndSubscriptions()
+    }
+  }, [groups]);
+
+  const handleSetDefaultGroup = async (groupId) => {
+    try {
+      setDefaultGroupId(groupId);
+      setSelectedGroupId(groupId); // Varsayılan grup değiştiğinde seçili grubu da güncelle
+      if (user && user.uid) {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, { defaultGroup: groupId });
+        showToastMessage("Varsayılan grup başarıyla güncellendi!", "success");
+      }
+    } catch (error) {
+      console.error("Varsayılan grup ayarlanırken hata oluştu:", error);
+      showToastMessage("Varsayılan grup ayarlanırken bir hata oluştu.", "error");
+    }
+  };
 
   // Function to send notification
   const sendNotification = (todoText, createdBy) => {
@@ -853,6 +907,21 @@ const TodoApp = () => {
     }
   };
 
+// Varsayılan grup ayarlama fonksiyonu (Firebase'e kaydetme eklendi)
+// const handleSetDefaultGroup = async (groupId) => {
+//   try {
+//     setDefaultGroup(groupId); // State'i güncelle
+//     if (user && user.uid) {
+//       const userRef = doc(db, "users", user.uid);
+//       await updateDoc(userRef, { defaultGroup: groupId }); // Firebase'e kaydet
+//       showToastMessage("Varsayılan grup başarıyla güncellendi!", "success");
+//     }
+//   } catch (error) {
+//     console.error("Varsayılan grup ayarlanırken hata oluştu:", error);
+//     showToastMessage("Varsayılan grup ayarlanırken bir hata oluştu.", "error");
+//   }
+// };
+
   if (!user) {
     return <AuthComponent onAuthSuccess={setUser} />;
   }
@@ -957,6 +1026,7 @@ const TodoApp = () => {
             editTodo={editTodo}
             setEditTodo={setEditTodo}
             selectedGroupId={selectedGroupId}
+            defaultGroupId={defaultGroupId}
             setSelectedGroupId={setSelectedGroupId}
             isModalAddTodoOpen={isModalAddTodoOpen}
             setIsModalAddTodoOpen={setIsModalAddTodoOpen}
@@ -1025,6 +1095,8 @@ const TodoApp = () => {
             handleCopyToClipboard={handleCopyToClipboard}
             setShowGroupSettings={setShowGroupSettings}
             user={user}
+            defaultGroupId={defaultGroupId} // Doğru prop: defaultGroupId state'i
+            setDefaultGroup={handleSetDefaultGroup} // Doğru fonksiyon
           />
         )}
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
-export const useFirebaseSubscriptions = (db, user) => {
+export const useFirebaseSubscriptions = (db, user, defaultGroupId) => {
   const [todos, setTodos] = useState([]);
   const [groups, setGroups] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
@@ -13,13 +13,15 @@ export const useFirebaseSubscriptions = (db, user) => {
       return;
     }
 
+    setLoading(true);
+
     // Query for personal todos
     const todoQuery = query(
       collection(db, "todos"),
       where("userId", "==", user.uid),
       where("type", "==", "personal"),
       where("statue", "==", "active"),
-      orderBy("completed", "asc"), // Add this line
+      orderBy("completed", "asc"),
       orderBy("createdAt", "desc")
     );
 
@@ -56,12 +58,19 @@ export const useFirebaseSubscriptions = (db, user) => {
         }));
         setGroups(groupsData);
 
+        // İlk yüklemede varsayılan grubu seç, ama sadece selectedGroupId yoksa
         if (groupsData.length > 0 && !selectedGroupId) {
-          setSelectedGroupId(groupsData[0].id);
+          const defaultGroupExists = defaultGroupId && groupsData.some((group) => group.id === defaultGroupId);
+          if (defaultGroupExists) {
+            setSelectedGroupId(defaultGroupId); // Varsayılan grup varsa onu seç
+          } else {
+            setSelectedGroupId(groupsData[0].id); // Yoksa ilk grubu seç
+          }
         }
       },
       (error) => {
         console.error("Error fetching groups:", error);
+        setLoading(false);
       }
     );
 
@@ -70,7 +79,7 @@ export const useFirebaseSubscriptions = (db, user) => {
       unsubscribeTodos();
       unsubscribeGroups();
     };
-  }, [user, selectedGroupId, db]);
+  }, [user, db, defaultGroupId]); // selectedGroupId bağımlılığını kaldırdık
 
   return {
     todos,
@@ -80,6 +89,6 @@ export const useFirebaseSubscriptions = (db, user) => {
     selectedGroupId,
     setSelectedGroupId,
     loading,
-    setLoading
+    setLoading,
   };
 };

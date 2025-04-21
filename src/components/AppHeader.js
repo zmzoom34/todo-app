@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Menu,
   Bell,
@@ -34,6 +35,8 @@ const AppHeader = ({
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const navigate = useNavigate()
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -42,6 +45,7 @@ const AppHeader = ({
     signOut(auth)
       .then(() => {
         setUser(null);
+        navigate("/login"); // Login sayfasına yönlendir
       })
       .catch((error) => {
         console.error("Error signing out:", error);
