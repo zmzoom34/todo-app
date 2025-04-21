@@ -397,7 +397,8 @@ const TodoApp = ( {
       category:
         categories.find((c) => c.value === todo.category)?.label ||
         todo.category,
-      prize: todo.prizeTL ? `${todo.prizeTL} TL` : "—",
+      prize: todo.prizeTL ? todo.prizeTL : "—",
+      categoryId: todo.category,
     }));
 
     setMonthlyReport({
