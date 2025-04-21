@@ -247,9 +247,8 @@ const ReportModal = ({ isOpen, onClose, reportData, categories, isLoading }) => 
       "Task,Archived By,Amount,Unit,Date,Prize (TL)",
       ...sortedTaskDetails.map(
         (task) =>
-          `${task.text},${task.archivedBy},${task.amount},${task.unit},${formatDate(
-            task.archivedAt
-          )},${formatTL(task.prize)}`
+          `${task.text},${task.archivedBy},${task.amount},${task.unit},${task.archivedAt
+          },${formatTL(task.prize)}`
       ),
     ];
     const csv = headers.join("\n");
@@ -403,7 +402,7 @@ const ReportModal = ({ isOpen, onClose, reportData, categories, isLoading }) => 
                     <td className="border border-gray-300 p-2">{task.archivedBy}</td>
                     <td className="border border-gray-300 p-2">{task.amount}</td>
                     <td className="border border-gray-300 p-2">{task.unit}</td>
-                    <td className="border border-gray-300 p-2">{formatDate(task.archivedAt)}</td>
+                    <td className="border border-gray-300 p-2">{task.archivedAt}</td>
                     <td className="border border-gray-300 p-2">{formatTL(task.prize)}</td>
                   </>
                 )}
@@ -441,7 +440,7 @@ const ReportModal = ({ isOpen, onClose, reportData, categories, isLoading }) => 
                 <td className="border border-gray-300 p-2">{task.archivedBy}</td>
                 <td className="border border-gray-300 p-2">{task.amount}</td>
                 <td className="border border-gray-300 p-2">{task.unit}</td>
-                <td className="border border-gray-300 p-2">{formatDate(task.archivedAt)}</td>
+                <td className="border border-gray-300 p-2">{task.archivedAt}</td>
                 <td className="border border-gray-300 p-2">{formatTL(task.prize)}</td>
               </>
             )}
